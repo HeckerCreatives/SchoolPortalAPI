@@ -1,0 +1,176 @@
+const { default: mongoose } = require("mongoose");
+const Requirements = require("../models/Requirements");
+const Ticketusers = require("../models/Ticketusers");
+
+exports.submitrequirement = async (req, res) => {
+    const { firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+
+    const files = req.files;
+    if (
+        !firstname || !lastname || !address || !email ||
+        !phonenumber || !telephonenumber || !mother || !father
+    ) {
+        return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
+    }
+
+    if (!files || !files.bc || !files.form) {
+        return res.status(400).json({ message: "failed", data: "Missing required files." });
+
+    }
+
+
+    const birthcertificate = files.bc[0].path
+    const form137 = files.form[0].path
+
+
+    await Requirements.create({
+        firstname: firstname,
+        middlename: middlename,
+        lastname: lastname,
+        address: address,
+        email: email,
+        phonenumber: phonenumber,
+        telephonenumber: telephonenumber,
+        mother: mother,
+        father: father,
+        form137: form137,
+        birthcertificate: birthcertificate
+    })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered when submitting requirements. Error: ${err}`)
+
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}
+
+exports.getrequirements = async (req, res) => {
+    const { page, limit } = req.query
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10
+    }
+
+    const matchCondition = [
+        {
+            $skip: pageOptions.page * pageOptions.limit, 
+        },
+        {
+            $limit: pageOptions.limit,
+        },
+        {
+            $project: {
+                firstname: 1,
+                middlename: 1,
+                lastname: 1,
+                address: 1,
+                email: 1,
+                phonenumber: 1,
+                telephonenumber: 1,
+                mother: 1,
+                father: 1,
+                form137: 1,
+                birthcertificate: 1,
+                status: 1,
+                denyreason: 1,
+            },
+        },
+    ]
+
+
+    const requirementsData = await Requirements.aggregate(matchCondition)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem while fetching requirements data. Error: ${err}`)
+
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    const totalDocuments = await Requirements.countDocuments(matchCondition)
+
+    
+    const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
+    
+    const finaldata = {
+        totalPages: totalPages,
+        data: []
+    }
+    requirementsData.forEach(temp => {
+        finaldata.data.push({
+            id: temp._id,
+            fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
+            address: temp.address,
+            email: temp.email,
+            phonenumber: temp.phonenumber,
+            telephonenumber: temp.telephonenumber,
+            mother: temp.mother,
+            father: temp.father,
+            form137: temp.form137,
+            birthcertificate: temp.birthcertificate,
+            status: temp.status,
+            denyreason: temp?.denyreason || ""
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata})
+}
+
+exports.approvedenyrequirements = async (req, res) => {
+    const { status, denyreason, id } = req.query
+
+    if(!id || !status){
+        return res.status(400).json({ message: "failed", data: "Please input requirement ID and status."})
+    }
+
+    if(status === 'deny'){
+        if(!denyreason){
+            return res.status(400).json({ message: "failed", data: "Please input deny reason."})
+        }
+    }
+
+    if(status === 'approved'){
+        await Requirements.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(id)}, { $set: { status: "approved" } } )
+        .then(async () => {
+            const ticket = await Ticketusers.create({
+                requirements: new mongoose.Types.ObjectId(id),
+                username: "a",
+                password: "test123",
+                webtoken: "",
+                status: "active"
+            })
+            .then(data => data)
+            .catch(async err => {
+                console.log(`There's a problem encountered when creating ticket user for ${id}. Error: ${err}`)
+                await Requirements.findOneAndUpdate({ id: new mongoose.Types.ObjectId(id)}, { $set: { status: "pending" } } )
+                return res.status(400).json({ message: "failed", data: "There's a problem with the server. Please contact support for more details."})
+            })
+
+            return res.status(200).json({ message: "success", data: ticket})
+        })
+        .catch(err => {
+            console.log(`There's a problem encountered while approving requirements of ${id}. Error: ${err}`)
+
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+        })
+    } else if (status === 'deny'){
+        await Requirements.findOneAndUpdate(
+            { _id: new mongoose.Types.ObjectId(id) }, 
+            { $set: { status: "denied", denyreason: denyreason } }
+        )
+        .then(data => data)
+        .catch(async err => {
+            console.log(`There's a problem encountered when disapproving requirements of ${id}. Error: ${err}`)
+            await Requirements.findOneAndUpdate({ id: new mongoose.Types.ObjectId(id)}, { $set: { status: "pending" } } )
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+        })
+
+        return res.status(200).json({ message: "success"})
+        
+    } else {
+        return res.status(400).json({ message: "failed", data: "Please input the correct status"})
+    }
+
+}

@@ -18,6 +18,9 @@ const RequirementsSchema  = new mongoose.Schema(
         email: {
             type: String,
         },
+        gender: {
+            type: String
+        },
         phonenumber: {
             type: Number,
         },
@@ -43,6 +46,9 @@ const RequirementsSchema  = new mongoose.Schema(
         denyreason: {
             type: String,
         }
+    },
+    {
+        timestamps: true,
     }
 )
 

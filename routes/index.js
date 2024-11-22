@@ -5,6 +5,7 @@ const routers = app => {
     app.use("/requirement", require("./requirements"))
     app.use("/schoolyear", require("./schoolyear"))
     app.use("/examschedule", require("./examschedule"))
+    app.use("/entranceexam", require("./entranceexamstatus"))
 }
 
 module.exports = routers

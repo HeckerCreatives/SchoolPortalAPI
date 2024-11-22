@@ -3,10 +3,14 @@ const { default: mongoose } = require('mongoose')
 
 const StudentUserDetailsSchema = new mongoose.Schema(
     {
-        idnumber: {
-            type: String,
-            unique: true,
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Studentusers"
         },
+        // idnumber: {
+        //     type: String,
+        //     unique: true,
+        // },
         firstname: {
             type: String,
         },
@@ -19,9 +23,9 @@ const StudentUserDetailsSchema = new mongoose.Schema(
         gender: {
             type: String
         },
-        dateofbirth: {
-            type: Date
-        },
+        // dateofbirth: {
+        //     type: Date
+        // },
         address: {
             type: String
         },

@@ -1,6 +1,9 @@
 const { default: mongoose } = require("mongoose")
 const Examschedule = require("../models/Examschedule")
 const Schoolyear = require("../models/Schoolyear")
+const Ticketusers = require("../models/Ticketusers")
+const Requirements = require("../models/Requirements")
+const Entranceexam = require("../models/Entranceexam")
 
 
 exports.CreateExamSchedule = async (req, res) => {
@@ -27,6 +30,33 @@ exports.CreateExamSchedule = async (req, res) => {
         date: date,
         schoolyear: currentschoolyear._id
     })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem while creating exam schedule. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}
+
+exports.EditExamSchedule = async (req, res) => {
+    const { examid, starttime, endtime, date } = req.body
+
+    if(!starttime || !endtime || !date || !examid){
+        return res.status(400).json({ message: "failed", data: "Please input start time, end time and date"})
+    }
+    await Examschedule.findOneAndUpdate(
+        {
+            _id: new mongoose.Types.ObjectId(examid)
+        },
+        { 
+            $set: {
+                starttime: starttime,
+                endtime: endtime,
+                date: date,
+            }
+        }
+    )
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem while creating exam schedule. Error: ${err}`)
@@ -85,7 +115,6 @@ exports.getExamSchedules = async (req, res) => {
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem while fetching requirements data. Error: ${err}`)
-
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
@@ -138,6 +167,21 @@ exports.selectExamSchedules = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please select Exam Schedule."})
     }
 
+    const Ticketuser = await Ticketusers.findOne({ _id: new mongoose.Types.ObjectId(id)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while checking for using requirements. Error: ${err} `)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with your account. Please contact support for more details." })
+    })
+    
+    const isApproved = await Requirements.findOne({ _id: new mongoose.Types.ObjectId(Ticketuser.requirements)})
+
+    if(isApproved.status === 'denied'){
+        return res.status(400).json({ message: "failed", data: "Ticket user requirements has been denied. Please check why your application is denied."})
+    }  
+    if(isApproved.status !== 'approved'){
+        return res.status(400).json({ message: "failed", data: "Ticket user requirements has not yet been approved."})
+    }
     const existingExam = await Examschedule.findOne({
         "examtakers.ticketuser": new mongoose.Types.ObjectId(id),
     });
@@ -148,10 +192,33 @@ exports.selectExamSchedules = async (req, res) => {
             .json({ message: "failed", data: "You have already selected an exam schedule." });
     }
     
-    await Examschedule.findOneAndUpdate(
+   await Examschedule.findOneAndUpdate(
         { _id: new mongoose.Types.ObjectId(examid) },
-        { $push: { examtakers: { ticketuser: new mongoose.Types.ObjectId(id) } } }, // Push the user ID to examtakers
-    )
+        { $push: { examtakers: { ticketuser: new mongoose.Types.ObjectId(id) } } } // Push the user ID to examtakers
+        )
+        .then(data => data)
+        .catch((err) => {
+            console.error(`Error updating Examschedule for exam ${examid}. Error: ${err}`);
+            return res.status(400).json({ 
+                message: "bad-request1", 
+                data: "There's a problem with the server. Please contact support for more details" 
+            });
+        });
+    
+        await Entranceexam.create({ owner: new mongoose.Types.ObjectId(id), schedule: new mongoose.Types.ObjectId(examid) })
+        .catch(async err => {
+            await Examschedule.findOneAndUpdate(
+                { id: new mongoose.Types.ObjectId(examid) },
+                { $pull: { examtakers: { ticketuser: new mongoose.Types.ObjectId(id) } } }
+            ).catch(pullErr => {
+                console.error(`Failed to remove ticket user ${id} from examtakers. Error: ${pullErr}`);
+            });
+
+            return res.status(400).json({ 
+                message: "bad-request2", 
+                data: "There's a problem with the server. Please contact support for more details" 
+            });
+        });
 
     return res.status(200).json({ message: "success" });
     

@@ -28,6 +28,8 @@ exports.createschoolyear = async (req, res) => {
 exports.setCurrentSchoolYear = async (req, res) => {
     const { id } = req.query
 
+    // delete all ticket users if changed current school year
+
     await Schoolyear.findOneAndUpdate(
         { currentstatus: "current" },
         { $set: { currentstatus: "inactive" } },

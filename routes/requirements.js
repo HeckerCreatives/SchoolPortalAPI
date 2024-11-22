@@ -1,5 +1,5 @@
-const { submitrequirement, getrequirements, approvedenyrequirements } = require("../controllers/requirements")
-const { protectsuperadmin } = require("../middleware/middleware")
+const { submitrequirement, getrequirements, approvedenyrequirements, viewrequirementsstatus } = require("../controllers/requirements")
+const { protectsuperadmin, protectticket } = require("../middleware/middleware")
 
 
 const upload = require("../middleware/upload")
@@ -24,5 +24,5 @@ router
  }, submitrequirement)
  .get("/getrequirements",protectsuperadmin, getrequirements)
  .get("/approvedenyrequirement",protectsuperadmin, approvedenyrequirements)
-
+ .get("/viewrequirementsstatus", protectticket, viewrequirementsstatus)
 module.exports = router

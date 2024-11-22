@@ -3,12 +3,12 @@ const Requirements = require("../models/Requirements");
 const Ticketusers = require("../models/Ticketusers");
 
 exports.submitrequirement = async (req, res) => {
-    const { firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+    const { gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
 
     const files = req.files;
     if (
         !firstname || !lastname || !address || !email ||
-        !phonenumber || !telephonenumber || !mother || !father
+        !phonenumber|| !gender || !telephonenumber || !mother || !father
     ) {
         return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
     }
@@ -27,6 +27,7 @@ exports.submitrequirement = async (req, res) => {
         firstname: firstname,
         middlename: middlename,
         lastname: lastname,
+        gender: gender,
         address: address,
         email: email,
         phonenumber: phonenumber,
@@ -36,14 +37,52 @@ exports.submitrequirement = async (req, res) => {
         form137: form137,
         birthcertificate: birthcertificate
     })
-    .then(data => data)
+    .then(async data => { 
+        const ticket = await Ticketusers.create({
+            requirements: new mongoose.Types.ObjectId(data._id),
+            username: "a",
+            password: "test123",
+            webtoken: "",
+            status: "active"
+        })
+        .then(data => data)
+        .catch(async err => {
+            console.log(`There's a problem encountered when creating ticket user for ${id}. Error: ${err}`)
+            return res.status(400).json({ message: "failed", data: "There's a problem with the server. Please contact support for more details."})
+        })
+
+
+        return res.status(200).json({ message: "success", data: { username: ticket.username, password: "test123"}})
+    })
     .catch(err => {
         console.log(`There's a problem encountered when submitting requirements. Error: ${err}`)
 
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
     })
+}
 
-    return res.status(200).json({ message: "success" })
+exports.viewrequirementsstatus = async (req, res) => {
+    const { id } = req.user
+
+    if(!id){
+        return res.status(401).json({ message: 'Unauthorized', data: "You are not authorized to view this page. Please login the right account to view the page." });
+    }
+
+    await Ticketusers.findOne({ _id: new mongoose.Types.ObjectId(id) })
+    .then(async data => {
+        const requirements = await Requirements.findById(data.requirements)
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem when viewing requirement status for ticktet user ${id}. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
+        })
+
+        return res.status(200).json({ message: "success", data: { id: requirements._id, status: requirements.status, denyreason: requirements.denyreason || "" }})
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching requirements id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
+    })
 }
 
 exports.getrequirements = async (req, res) => {
@@ -66,6 +105,7 @@ exports.getrequirements = async (req, res) => {
                 firstname: 1,
                 middlename: 1,
                 lastname: 1,
+                gender: 1,
                 address: 1,
                 email: 1,
                 phonenumber: 1,
@@ -76,7 +116,11 @@ exports.getrequirements = async (req, res) => {
                 birthcertificate: 1,
                 status: 1,
                 denyreason: 1,
+                createdAt: 1,
             },
+        },
+        {
+            $sort: { createdAt: -1 }
         },
     ]
 
@@ -104,6 +148,7 @@ exports.getrequirements = async (req, res) => {
             fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
             address: temp.address,
             email: temp.email,
+            gender: temp?.gender || "",
             phonenumber: temp.phonenumber,
             telephonenumber: temp.telephonenumber,
             mother: temp.mother,
@@ -134,21 +179,8 @@ exports.approvedenyrequirements = async (req, res) => {
     if(status === 'approved'){
         await Requirements.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(id)}, { $set: { status: "approved" } } )
         .then(async () => {
-            const ticket = await Ticketusers.create({
-                requirements: new mongoose.Types.ObjectId(id),
-                username: "a",
-                password: "test123",
-                webtoken: "",
-                status: "active"
-            })
-            .then(data => data)
-            .catch(async err => {
-                console.log(`There's a problem encountered when creating ticket user for ${id}. Error: ${err}`)
-                await Requirements.findOneAndUpdate({ id: new mongoose.Types.ObjectId(id)}, { $set: { status: "pending" } } )
-                return res.status(400).json({ message: "failed", data: "There's a problem with the server. Please contact support for more details."})
-            })
 
-            return res.status(200).json({ message: "success", data: ticket})
+            return res.status(200).json({ message: "success" })
         })
         .catch(err => {
             console.log(`There's a problem encountered while approving requirements of ${id}. Error: ${err}`)

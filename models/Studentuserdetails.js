@@ -7,10 +7,10 @@ const StudentUserDetailsSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Studentusers"
         },
-        // idnumber: {
-        //     type: String,
-        //     unique: true,
-        // },
+        idnumber: {
+            type: String,
+            unique: true,
+        },
         firstname: {
             type: String,
         },

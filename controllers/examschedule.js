@@ -223,3 +223,20 @@ exports.selectExamSchedules = async (req, res) => {
     return res.status(200).json({ message: "success" });
     
 }
+
+exports.deleteSchedule = async (req, res) => {
+    const { examid } = req.query
+
+    if(!examid){
+        return res.status(400).json({ message: "failed", data: "Please input exam ID."})
+    }
+
+    await Examschedule.findOneAndDelete({ _id: new mongoose.Types.ObjectId(examid)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered when trying to delete schedule. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}

@@ -52,6 +52,16 @@ exports.setentranceexamstatus = async (req, res) => {
 
 
     if(status === 'passed'){
+
+        const check = await Studentusers.findOne({ ticketid: new mongoose.Types.ObjectId(ticketid)})
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem encountered while checking if ticket user already passed. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+        })
+        if(check){
+            return res.status(400).json({ message: "failed", data: "User has already been passed and has an account."})
+        }
         const ticketuser = await Ticketusers.findOne({ _id: new mongoose.Types.ObjectId(ticketid) })
         .then(data => data)
         .catch(err => {
@@ -61,14 +71,15 @@ exports.setentranceexamstatus = async (req, res) => {
 
         const requirementsdata = await Requirements.findOne({ _id: new mongoose.Types.ObjectId(ticketuser.requirements)})
         await Studentusers.create({
-            username: `${requirementsdata.firstname}${requirementsdata.lastname}@school.edu.ph`,
+            ticketid: new mongoose.Types.ObjectId(ticketid),
+            username: `AAA`,
             password: "temp123",
             webtoken: ""
         })
         .then(async data => {
             await Studentuserdetails.create({
                 owner: data._id,
-                // idnumber: '',
+                idnumber: data.username,
                 firstname: requirementsdata.firstname,
                 middlename: requirementsdata.middlename || "",
                 lastname: requirementsdata.lastname,
@@ -172,6 +183,7 @@ exports.getentranceexamstatus = async (req, res) => {
                               { "ticketuserDetails.username": { $regex: search, $options: "i" } },
                               { "requirementsDetails.email": { $regex: search, $options: "i" } },
                               { "requirementsDetails.lastname": { $regex: search, $options: "i" } },
+                              { "requirementsDetails.firstname": { $regex: search, $options: "i" } },
                           ],
                       },
                   },

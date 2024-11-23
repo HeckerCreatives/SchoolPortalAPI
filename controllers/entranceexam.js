@@ -20,6 +20,10 @@ exports.entranceexamstatus = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "You have not yet selected a schedule."})
     }
 
+    if(entranceexam.status === 'passed'){
+        
+    }
+
     const data = {
         id: entranceexam._id,
         status: entranceexam.status,

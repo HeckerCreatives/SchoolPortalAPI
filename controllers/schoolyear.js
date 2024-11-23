@@ -66,3 +66,15 @@ exports.getSchoolYear = async (req, res) => {
     return res.status(200).json({ message: "success", data: schoolyeardata})
 }
 
+exports.getCurrentSchoolYear = async (req, res) => {
+
+    const schoolyeardata = await Schoolyear.findOne({ currentstatus: "current"})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem while fetching school year. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success", data: schoolyeardata})
+}
+

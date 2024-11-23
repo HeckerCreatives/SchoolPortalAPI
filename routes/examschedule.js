@@ -6,7 +6,7 @@ const router = require("express").Router()
 router
 .post("/createexamschedule", protectsuperadmin, CreateExamSchedule)
 .post("/editexamschedule", protectsuperadmin, EditExamSchedule)
-.get("/getexamschedule", protectsuperadmin, getExamSchedules)
+.get("/getexamschedule", getExamSchedules)
 .get("/selectexamschedule", protectticket, selectExamSchedules)
 
 module.exports = router

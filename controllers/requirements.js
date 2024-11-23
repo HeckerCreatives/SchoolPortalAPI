@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const Requirements = require("../models/Requirements");
 const Ticketusers = require("../models/Ticketusers");
+const Entranceexam = require("../models/Entranceexam");
 
 exports.submitrequirement = async (req, res) => {
     const { gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
@@ -62,7 +63,7 @@ exports.submitrequirement = async (req, res) => {
 }
 
 exports.viewrequirementsstatus = async (req, res) => {
-    const { id } = req.user
+    const { id, username } = req.user
 
     if(!id){
         return res.status(401).json({ message: 'Unauthorized', data: "You are not authorized to view this page. Please login the right account to view the page." });
@@ -77,7 +78,26 @@ exports.viewrequirementsstatus = async (req, res) => {
             return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
         })
 
-        return res.status(200).json({ message: "success", data: { id: requirements._id, status: requirements.status, denyreason: requirements.denyreason || "" }})
+        const status = await Entranceexam.findOne({ owner: new mongoose.Types.ObjectId(id)})
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem encountered whil searching entrance exam status in view requirements status for ${username}. Error: ${err}`)
+        })
+
+        let value = false
+        if(status){
+            value = true;
+        }
+
+        return res.status(200).json({ 
+            message: "success", 
+            data: { 
+                id: requirements._id, 
+                status: requirements.status, 
+                denyreason: requirements.denyreason || "",
+                hasSchedule: value
+            }
+        })
     })
     .catch(err => {
         console.log(`There's a problem encountered while fetching requirements id. Error: ${err}`)
@@ -86,22 +106,48 @@ exports.viewrequirementsstatus = async (req, res) => {
 }
 
 exports.getrequirements = async (req, res) => {
-    const { page, limit } = req.query
+    const { page, limit, filter } = req.query
 
     const pageOptions = {
         page: parseInt(page) || 0,
         limit: parseInt(limit) || 10
     }
 
+    let filterMatchStage = {};
+
+
+    if(filter === 'pending' || filter === 'denied' || filter === 'approved'){
+        filterMatchStage = {
+            status: filter,
+        }
+    }
+
+
     const matchCondition = [
         {
-            $skip: pageOptions.page * pageOptions.limit, 
+            $lookup: {
+                from: "ticketusers",
+                localField: "_id",
+                foreignField: "requirements",
+                as: "ticketuserDetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$ticketuserDetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        ...(filter ? [ { $match: filterMatchStage }]: []),
+        {
+            $skip: pageOptions.page * pageOptions.limit,
         },
         {
             $limit: pageOptions.limit,
         },
         {
             $project: {
+                ticketuserDetails: 1,
                 firstname: 1,
                 middlename: 1,
                 lastname: 1,
@@ -120,16 +166,18 @@ exports.getrequirements = async (req, res) => {
             },
         },
         {
-            $sort: { createdAt: -1 }
+            $sort: { createdAt: -1 },
         },
-    ]
-
-
+    ];
+    
+    
+    
+    
     const requirementsData = await Requirements.aggregate(matchCondition)
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem while fetching requirements data. Error: ${err}`)
-
+        
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
@@ -145,6 +193,8 @@ exports.getrequirements = async (req, res) => {
     requirementsData.forEach(temp => {
         finaldata.data.push({
             id: temp._id,
+            ticketid: temp.ticketuserDetails._id,
+            ticketusername: temp.ticketuserDetails.username,           
             fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
             address: temp.address,
             email: temp.email,

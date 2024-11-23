@@ -140,12 +140,6 @@ exports.getrequirements = async (req, res) => {
         },
         ...(filter ? [ { $match: filterMatchStage }]: []),
         {
-            $skip: pageOptions.page * pageOptions.limit,
-        },
-        {
-            $limit: pageOptions.limit,
-        },
-        {
             $project: {
                 ticketuserDetails: 1,
                 firstname: 1,
@@ -164,6 +158,12 @@ exports.getrequirements = async (req, res) => {
                 denyreason: 1,
                 createdAt: 1,
             },
+        },
+        {
+            $skip: pageOptions.page * pageOptions.limit,
+        },
+        {
+            $limit: pageOptions.limit,
         },
         {
             $sort: { createdAt: -1 },

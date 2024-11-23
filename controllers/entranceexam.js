@@ -40,6 +40,16 @@ exports.setentranceexamstatus = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please input ticketid, status and score"})
     }
 
+    const check = await Studentusers.findOne({ ticketid: new mongoose.Types.ObjectId(ticketid)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while checking if ticket user already passed. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+    if(check){
+        return res.status(400).json({ message: "failed", data: "User has already been passed and has an account."})
+    }
+    
     await Entranceexam.findOneAndUpdate(
         { owner: new mongoose.Types.ObjectId(ticketid) },
         { $set: { status: status, score: parseInt(score) }} 
@@ -53,15 +63,6 @@ exports.setentranceexamstatus = async (req, res) => {
 
     if(status === 'passed'){
 
-        const check = await Studentusers.findOne({ ticketid: new mongoose.Types.ObjectId(ticketid)})
-        .then(data => data)
-        .catch(err => {
-            console.log(`There's a problem encountered while checking if ticket user already passed. Error: ${err}`)
-            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-        })
-        if(check){
-            return res.status(400).json({ message: "failed", data: "User has already been passed and has an account."})
-        }
         const ticketuser = await Ticketusers.findOne({ _id: new mongoose.Types.ObjectId(ticketid) })
         .then(data => data)
         .catch(err => {

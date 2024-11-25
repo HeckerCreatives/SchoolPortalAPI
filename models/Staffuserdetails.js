@@ -3,9 +3,13 @@ const { default: mongoose } = require('mongoose')
 
 const StaffUserDetailsSchema = new mongoose.Schema(
     {
-        idnumber: {
-            type: String,
-            unique: true,
+        // idnumber: {
+        //     type: String,
+        //     unique: true,
+        // },
+        owner: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Staffusers"
         },
         firstname: {
             type: String,
@@ -17,12 +21,6 @@ const StaffUserDetailsSchema = new mongoose.Schema(
             type: String,
         },
         gender: {
-            type: String
-        },
-        program: {
-            type: String
-        },
-        level: {
             type: String
         },
         dateofbirth: {

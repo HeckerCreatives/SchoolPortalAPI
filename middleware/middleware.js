@@ -1,7 +1,6 @@
 
 const Staffusers = require("../models/Staffusers")
 const Ticketusers = require("../models/Ticketusers")
-const Teacherusers = require("../models/Teacherusers")
 const Studentusers = require("../models/Studentusers")
 
 const fs = require('fs');

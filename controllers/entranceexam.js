@@ -80,7 +80,8 @@ exports.setentranceexamstatus = async (req, res) => {
         .then(async data => {
             await Studentuserdetails.create({
                 owner: data._id,
-                idnumber: data.username,
+                level: new mongoose.Types.ObjectId(requirementsdata.level),
+                program: new mongoose.Types.ObjectId(requirementsdata.program),
                 firstname: requirementsdata.firstname,
                 middlename: requirementsdata.middlename || "",
                 lastname: requirementsdata.lastname,

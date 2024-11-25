@@ -9,6 +9,7 @@ const routers = app => {
     app.use("/ticketuser", require("./ticketuser"))
     app.use("/program", require("./program"))
     app.use("/gradelevel", require("./gradelevel"))
+    app.use("/staffuser", require("./staffuser"))
     app.use("/studentuser", require("./studentuser"))
     app.use("/uploads", require("./upload"))
 }

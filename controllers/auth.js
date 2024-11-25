@@ -1,8 +1,8 @@
 
 //  Import all mandatory schemas and delete this if necessary
 const Staffusers = require("../models/Staffusers")
+const Staffuserdetails = require("../models/Staffuserdetails");
 const Ticketusers = require("../models/Ticketusers")
-const Teacherusers = require("../models/Teacherusers")
 const Studentusers = require("../models/Studentusers")
 
 const fs = require('fs')
@@ -18,6 +18,66 @@ const encrypt = async password => {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash(password, salt);
 }
+
+exports.registerStaff = async(req, res) => {
+
+    const { username, password, role, dob, firstname, middlename, lastname, gender, address, email, contact  } = req.body
+
+    if(!username || !password || !role || !dob || !firstname || !middlename || !lastname || !gender || !address || !email || !contact){
+        return res.status(400).json({ message: "failed", data: "Incomplete form data."})
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if(!emailRegex.test(email)){
+        return res.status(400).json({ message: "failed", data: "Please input a valid email."})
+    }
+    if(username.length < 5 || username.length > 30){
+        return res.status(400).json({ message: "failed", data: "Username must be greater than 5 characters and less than 30 characters."})
+    }
+    const isExisting = await Staffusers.findOne({ username: { $regex: `^${username}$`, $options: 'i' } })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while searching for user: ${username} Error: ${err}`)
+    })
+   
+    if(isExisting){
+        return res.status(400).json({ message: "bad-request", data: "Username has already been used."})
+    }
+
+    await Staffusers.create({
+        username: username,
+        password: password,
+        auth: role,
+        webtoken: "",
+    })
+    .then(async data => {
+        await Staffuserdetails.create({
+            owner: data._id,
+            firstname: firstname,
+            middlename: middlename,
+            lastname: lastname,
+            gender: gender,
+            dateofbirth: dob,
+            address: address,
+            email: email,
+            contact: contact,
+            profilepicture: ""
+        })
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem encountered while creating teacher user details. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request1", data: "There's a problem with the server. Please contact support for more details."})
+        })
+        return res.status(200).json({ message: "success"})
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while creating teacher ${role} user. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+    
+}
+
 
 exports.authlogin = async(req, res) => {
     const { username, password } = req.query;

@@ -181,8 +181,9 @@ exports.getrequirements = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    const totalDocuments = await Requirements.countDocuments(matchCondition)
+    const totalDocuments = await Requirements.countDocuments(filterMatchStage)
 
+    console.log(totalDocuments)
     
     const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
     
@@ -255,4 +256,62 @@ exports.approvedenyrequirements = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please input the correct status"})
     }
 
+}
+
+exports.reapplyRequirements = async (req, res) => {
+    const { id, username } = req.user
+    
+    const { gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+
+    const files = req.files;
+    if (
+        !firstname || !lastname || !address || !email ||
+        !phonenumber|| !gender || !telephonenumber || !mother || !father
+    ) {
+        return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
+    }
+
+    if (!files || !files.bc || !files.form) {
+        return res.status(400).json({ message: "failed", data: "Missing required files." });
+
+    }
+
+
+    const birthcertificate = files.bc[0].path
+    const form137 = files.form[0].path
+
+
+    const requirementsId = await Ticketusers.findOne({ _id: new mongoose.Types.ObjectId(id)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching requirements data in reapply requirements of user: ${username}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with your account. Please contact admin for more details."})
+    })
+    await Requirements.findOneAndUpdate({ _id: requirementsId.requirements },
+        {
+        $set: {
+            firstname: firstname,
+            middlename: middlename,
+            lastname: lastname,
+            gender: gender,
+            address: address,
+            email: email,
+            phonenumber: phonenumber,
+            telephonenumber: telephonenumber,
+            mother: mother,
+            father: father,
+            form137: form137,
+            birthcertificate: birthcertificate,
+            status: "pending",
+            denyreason: ""
+        }
+    })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered when submitting requirements. Error: ${err}`)
+
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact admin for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
 }

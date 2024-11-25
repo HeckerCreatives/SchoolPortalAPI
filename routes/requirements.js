@@ -1,4 +1,4 @@
-const { submitrequirement, getrequirements, approvedenyrequirements, viewrequirementsstatus } = require("../controllers/requirements")
+const { submitrequirement, getrequirements, approvedenyrequirements, viewrequirementsstatus, reapplyRequirements } = require("../controllers/requirements")
 const { protectsuperadmin, protectticket } = require("../middleware/middleware")
 
 
@@ -13,7 +13,7 @@ const fileupload = upload.fields([
 const router = require("express").Router()
 
 router
- .post("/submitrequirement", 
+.post("/submitrequirement", 
     function (req, res, next){
         fileupload(req, res, function(err){
             if(err){
@@ -21,7 +21,16 @@ router
             }
             next()
         })
- }, submitrequirement)
+ }, submitrequirement) 
+ .post("/reapplyrequirement", 
+    function (req, res, next){
+        fileupload(req, res, function(err){
+            if(err){
+                return res.status(400).send({ message: 'failed', data: err.message})
+            }
+            next()
+        })
+ }, protectticket, reapplyRequirements)
  .get("/getrequirements",protectsuperadmin, getrequirements)
  .get("/approvedenyrequirement",protectsuperadmin, approvedenyrequirements)
  .get("/viewrequirementsstatus", protectticket, viewrequirementsstatus)

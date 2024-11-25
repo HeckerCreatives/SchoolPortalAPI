@@ -45,6 +45,16 @@ exports.registerStaff = async(req, res) => {
         return res.status(400).json({ message: "bad-request", data: "Username has already been used."})
     }
 
+    const isEmailExisting = await Staffuserdetails.findOne({ email: { $regex: `^${email}$`, $options: 'i' } })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while searching for email: ${username} Error: ${err}`)
+    })
+   
+    if(isEmailExisting){
+        return res.status(400).json({ message: "bad-request", data: "Email has already been used."})
+    }
+
     await Staffusers.create({
         username: username,
         password: password,

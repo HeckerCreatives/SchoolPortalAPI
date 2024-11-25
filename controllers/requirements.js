@@ -4,11 +4,11 @@ const Ticketusers = require("../models/Ticketusers");
 const Entranceexam = require("../models/Entranceexam");
 
 exports.submitrequirement = async (req, res) => {
-    const { gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+    const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
 
     const files = req.files;
     if (
-        !firstname || !lastname || !address || !email ||
+        !level || !program || !firstname || !lastname || !address || !email ||
         !phonenumber|| !gender || !telephonenumber || !mother || !father
     ) {
         return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
@@ -30,6 +30,8 @@ exports.submitrequirement = async (req, res) => {
         lastname: lastname,
         gender: gender,
         address: address,
+        level: new mongoose.Types.ObjectId(level),
+        program: new mongoose.Types.ObjectId(program),
         email: email,
         phonenumber: phonenumber,
         telephonenumber: telephonenumber,
@@ -145,6 +147,8 @@ exports.getrequirements = async (req, res) => {
                 firstname: 1,
                 middlename: 1,
                 lastname: 1,
+                level: 1,
+                program: 1,
                 gender: 1,
                 address: 1,
                 email: 1,
@@ -197,6 +201,8 @@ exports.getrequirements = async (req, res) => {
             ticketid: temp.ticketuserDetails._id,
             ticketusername: temp.ticketuserDetails.username,           
             fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
+            level: temp.level,
+            program: temp.program,
             address: temp.address,
             email: temp.email,
             gender: temp?.gender || "",
@@ -261,11 +267,11 @@ exports.approvedenyrequirements = async (req, res) => {
 exports.reapplyRequirements = async (req, res) => {
     const { id, username } = req.user
     
-    const { gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
+    const { program, level, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mother, father  } = req.body
 
     const files = req.files;
     if (
-        !firstname || !lastname || !address || !email ||
+        !program || !level || !firstname || !lastname || !address || !email ||
         !phonenumber|| !gender || !telephonenumber || !mother || !father
     ) {
         return res.status(400).json({ message: "failed", data: "Incomplete text fields." });
@@ -296,6 +302,8 @@ exports.reapplyRequirements = async (req, res) => {
             gender: gender,
             address: address,
             email: email,
+            program: program,
+            level: level,
             phonenumber: phonenumber,
             telephonenumber: telephonenumber,
             mother: mother,

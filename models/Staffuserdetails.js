@@ -19,6 +19,12 @@ const StaffUserDetailsSchema = new mongoose.Schema(
         gender: {
             type: String
         },
+        program: {
+            type: String
+        },
+        level: {
+            type: String
+        },
         dateofbirth: {
             type: Date
         },

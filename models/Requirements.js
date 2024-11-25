@@ -36,6 +36,14 @@ const RequirementsSchema  = new mongoose.Schema(
         form137: {
             type: String,
         },
+        program: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Program"
+        },
+        level: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Gradelevel"
+        },
         birthcertificate: {
             type: String
         },

@@ -7,6 +7,8 @@ const routers = app => {
     app.use("/examschedule", require("./examschedule"))
     app.use("/entranceexam", require("./entranceexamstatus"))
     app.use("/ticketuser", require("./ticketuser"))
+    app.use("/program", require("./program"))
+    app.use("/gradelevel", require("./gradelevel"))
     app.use("/uploads", require("./upload"))
 }
 

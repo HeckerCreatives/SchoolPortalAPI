@@ -7,6 +7,14 @@ const StudentUserDetailsSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Studentusers"
         },
+        level: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Gradelevel"
+        },
+        program: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Program"
+        },
         idnumber: {
             type: String,
             unique: true,

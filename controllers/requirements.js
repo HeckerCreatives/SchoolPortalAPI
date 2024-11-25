@@ -135,6 +135,34 @@ exports.getrequirements = async (req, res) => {
             },
         },
         {
+            $lookup: {
+                from: "gradelevels",
+                localField: "level",
+                foreignField: "_id",
+                as: "gradeleveldetails"
+            },
+        },
+        {
+            $lookup: {
+                from: "programs",
+                localField: "program",
+                foreignField: "_id",
+                as: "programdetails"
+            },
+        },
+        {
+            $unwind: {
+                path: "$gradeleveldetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $unwind: {
+                path: "$programdetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
             $unwind: {
                 path: "$ticketuserDetails",
                 preserveNullAndEmptyArrays: true,
@@ -147,8 +175,8 @@ exports.getrequirements = async (req, res) => {
                 firstname: 1,
                 middlename: 1,
                 lastname: 1,
-                level: 1,
-                program: 1,
+                gradeleveldetails: 1,
+                programdetails: 1,
                 gender: 1,
                 address: 1,
                 email: 1,
@@ -187,7 +215,6 @@ exports.getrequirements = async (req, res) => {
 
     const totalDocuments = await Requirements.countDocuments(filterMatchStage)
 
-    console.log(totalDocuments)
     
     const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
     
@@ -201,8 +228,8 @@ exports.getrequirements = async (req, res) => {
             ticketid: temp.ticketuserDetails._id,
             ticketusername: temp.ticketuserDetails.username,           
             fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
-            level: temp.level,
-            program: temp.program,
+            level: temp.gradeleveldetails.level,
+            program: temp.programdetails.name,
             address: temp.address,
             email: temp.email,
             gender: temp?.gender || "",
@@ -302,8 +329,8 @@ exports.reapplyRequirements = async (req, res) => {
             gender: gender,
             address: address,
             email: email,
-            program: program,
-            level: level,
+            program: new mongoose.Types.ObjectId(program),
+            level: new mongoose.Types.ObjectId(level),
             phonenumber: phonenumber,
             telephonenumber: telephonenumber,
             mother: mother,

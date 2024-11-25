@@ -95,7 +95,7 @@ exports.setentranceexamstatus = async (req, res) => {
                 console.log(`There's a problem encountered while creating student user details. Error: ${err}`)
                 return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
             })
-            return res.status(200).json({ message: "success", data: { username: student.username, password: "temp123"} })
+            return res.status(200).json({ message: "success" })
         })
         .catch(err => {
             console.log(`There's an error encoutered while creating student user for ticket user ${ticketid}. Error: ${err}`)

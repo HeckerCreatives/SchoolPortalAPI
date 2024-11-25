@@ -240,3 +240,70 @@ exports.deleteSchedule = async (req, res) => {
 
     return res.status(200).json({ message: "success" })
 }
+
+
+exports.getSelectedExamSchedule = async (req, res) => {
+    const { id, username } = req.user
+
+    const examData = await Ticketusers.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(id), 
+            },
+        },
+        {
+            $lookup: {
+                from: "examschedules",
+                localField: "_id",
+                foreignField: "examtakers.ticketuser",
+                as: "examSchedules",
+            },
+        },
+        {
+            $lookup: {
+                from: "requirements",
+                localField: "requirements",
+                foreignField: "_id", 
+                as: "requirements"
+            }
+        },
+        {
+            $unwind: {
+                path: "$requirements",
+                preserveNullAndEmptyArrays: true,
+            }
+        },
+        {
+            $unwind: {
+                path: "$examSchedules",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                username: 1,
+                examstart: "$examSchedules.starttime",
+                examend: "$examSchedules.endtime",
+                date: "$examSchedules.date",
+                fullname: {
+                    $concat: [
+                        "$requirements.firstname",
+                        " ",
+                        "$requirements.middlename",
+                        " ",
+                        "$requirements.lastname"
+                    ]
+                }
+            }
+        }
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching ticket user exam schedule of user ${username}. Error: ${err}`)
+        return res.status(400).json({ message: "success", data: "There's a problem with your account. Please contact admin for more details."})
+    })
+
+
+    return res.status(200).json({ message: "success", data: examData})
+}

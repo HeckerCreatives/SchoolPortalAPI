@@ -15,6 +15,10 @@ const StudentUserDetailsSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Program"
         },
+        section: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Section"
+        },
         firstname: {
             type: String,
         },

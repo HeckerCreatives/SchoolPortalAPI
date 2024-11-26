@@ -2,6 +2,10 @@ const { default: mongoose } = require("mongoose");
 
 
 const AdvisorySchema = new mongoose.Schema({
+    status: {
+        type: String,
+        default: "active"
+    },
     program: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Program"
@@ -16,7 +20,7 @@ const AdvisorySchema = new mongoose.Schema({
     },
     teacher: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Teacherusers"
+        ref: "Staffuser"
     }
 })
 

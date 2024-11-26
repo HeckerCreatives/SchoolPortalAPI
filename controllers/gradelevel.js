@@ -16,7 +16,8 @@ exports.getAllGradelevels = async (req, res) => {
     gradeLevelData.forEach(temp => {
         finaldata.push({
             id: temp._id,
-            level: temp.level, 
+            level: temp.level,
+            program: temp.program 
         })
     })
 

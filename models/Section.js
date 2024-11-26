@@ -8,10 +8,15 @@ const SectionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
+        default: "active",
     },
     gradelevel: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Gradelevel"
+    },
+    program: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Program"
     },
     schoolyear: {
         type: mongoose.Schema.Types.ObjectId,

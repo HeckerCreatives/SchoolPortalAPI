@@ -5,17 +5,12 @@ const SubjectSchema = new mongoose.Schema({
     name: {
         type: String,
     },
-    day: {
-        type: String,
-    },
-    starttime: {
-        type: String,
-    },
-    endtime: {
-        type: String
-    },
     status: {
         type: Boolean,
+    },
+    schedule: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Schedule"
     },
     program: {
         type: mongoose.Schema.Types.ObjectId,

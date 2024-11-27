@@ -16,6 +16,9 @@ const SchoolYearSchema = new mongoose.Schema(
         currentstatus: {
             type: String,
         }
+    },
+    {
+        timestamps: true
     }
 )
 

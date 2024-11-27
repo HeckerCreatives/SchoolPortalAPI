@@ -22,26 +22,74 @@ exports.createSubject = async (req, res) => {
         name: name,
         schoolyear: currentSchoolYear._id
     })
-    .then(async data => {
-            await Schedule.create({
-                subject: data._id,
-                day: "",
-                starttime: "",
-                endtime: "",
-            })
-            .then(data => data)
-            .catch(err => {
-                console.log(`There's a problem encountered while creating schedule in create subject. Error: ${err}`)
-                return res.status(400).json({ message: "bad-request1", data: "There's a problem with the server. Please contact support for more details."})
-            })
-        return res.status(200).json({ message: "success"})
-    })
+    .then(async data => data)
     .catch(err => {
         console.log(`There's a problem encountred when creating subject. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
+    return res.status(200).json({ message: "success"})
 }
 
-exports.selectsubjectdetails = async (req, res) => {
+exports.getSubjects = async (req, res) => {
+    const { page, limit, search, status } = req.query
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10,
+    }
+
+    const matchconditionpipeline = [
+        ...(search
+            ? [
+                  {
+                      $match: {
+                          $or: [
+                              { "name": { $regex: search, $options: "i" } },
+                          ],
+                      },
+                  },
+              ]
+            : []),
+        ...(status ? [ { $match: status }]: []),
+        {
+            $skip: pageOptions.page * pageOptions.limit   
+        },
+        {
+            $limit: pageOptions.limit
+        }
+    ]
+
+    const subjectDetails = await Subject.aggregate(matchconditionpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while aggregating Subject details. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    const totalDocuments = await Subject.countDocuments(matchconditionpipeline)
+        .then(data => data) 
+        .catch(err => {
+            console.log(`Error counting documents: ${err}`);
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
+
+    const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
     
+    const finaldata = {
+        totalPages: totalPages,
+        data: []
+    }
+    subjectDetails.forEach(temp => {
+        finaldata.data.push({
+            id: temp._id,
+            name: temp.name,
+            status: temp.status,
+            createdAt: temp.createdAt
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata})
 }

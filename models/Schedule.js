@@ -28,6 +28,9 @@ const ScheduleSchema = new mongoose.Schema({
     endtime: {
         type: String
     }
+},
+{
+    timestamps: true
 })
 
 const Schedule = mongoose.model("Schedule", ScheduleSchema)

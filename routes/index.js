@@ -11,6 +11,7 @@ const routers = app => {
     app.use("/gradelevel", require("./gradelevel"))
     app.use("/staffuser", require("./staffuser"))
     app.use("/subject", require("./subject"))
+    app.use("/schedule", require("./schedule"))
     app.use("/section", require("./section"))
     app.use("/studentuser", require("./studentuser"))
     app.use("/advisory", require("./advisory"))

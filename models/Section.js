@@ -1,7 +1,6 @@
 const { default: mongoose } = require("mongoose");
 
 
-
 const SectionSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -22,23 +21,6 @@ const SectionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Schoolyear"
     },
-    students: [{
-        studentid: {
-            type: mongoose.Schema.Types.ObjectId
-        },
-        studentusername: {
-            type: String,
-        },
-        firstname: {
-            type: String,
-        },
-        middlename: {
-            type: String,
-        },
-        lastname: {
-            type: String,
-        }
-    }]
 })
 
 

@@ -6,28 +6,21 @@ const SubjectSchema = new mongoose.Schema({
         type: String,
     },
     status: {
-        type: Boolean,
-    },
-    schedule: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Schedule"
+        type: String,
+        default: "active"
     },
     program: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Program"
     },
-    section: {
+    level: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Section"
+        ref: "Gradelevel"
     },
     schoolyear: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Schoolyear"
     },
-    level: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Gradelevel"
-    }
 })
 
 const Subject = mongoose.model("Subject", SubjectSchema)

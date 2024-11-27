@@ -4,11 +4,23 @@ const { default: mongoose } = require("mongoose");
 
 const ScheduleSchema = new mongoose.Schema({
     teacher: {
-        type: mongoose.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Staffusers"
     },
+    subject: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subject"
+    },
+    section: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Section"
+    },
+    schoolyear: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Schoolyear"
+    },
     day: {
-        type: String,
+        type: String, // monday, tuesday, wednesday, thursday, friday
     },
     starttime: {
         type: String,

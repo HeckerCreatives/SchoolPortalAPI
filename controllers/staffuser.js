@@ -4,69 +4,54 @@ const Staffuserdetails = require("../models/Staffuserdetails");
 
 
 exports.staffuserlist = async (req, res) => {
-    const { page, limit, status, search, filter} = req.query
+    const { page, limit, status, search, filter } = req.query;
 
     const pageOptions = {
         page: parseInt(page) || 0,
-        limit: parseInt(limit) || 10
-    }
-
+        limit: parseInt(limit) || 10,
+    };
+    
     let filterMatchStage = {};
     let statusMatchStage = {};
-
-    if(search){
+    let searchMatchStage = {};
+    
+    if (search) {
         searchMatchStage = {
             $or: [
-                { username: { $regex: search, $options: 'i' }},
-                { "details.email": { $regex: search, $options: 'i' } }
-            ]
+                { username: { $regex: search, $options: 'i' } },
+                { "staffuserdetails.email": { $regex: search, $options: 'i' } },
+                { "staffuserdetails.lastname": { $regex: search, $options: 'i' } },
+                { "staffuserdetails.firstname": { $regex: search, $options: 'i' } },
+            ],
         };
-
     }
-
-    if(filter === 'admin' || filter === 'superadmin' || filter === 'finance' || filter === 'registrar' || filter === 'adviser' || filter === 'teacher'){
-        filterMatchStage = {
-            auth: filter,
-        }
+    
+    if (filter === 'admin' || filter === 'superadmin' || filter === 'finance' || filter === 'registrar' || filter === 'adviser' || filter === 'teacher') {
+        filterMatchStage = { auth: filter };
     }
-    if(status === 'active' || status === 'inactive'){
-        statusMatchStage = {
-            status: status,
-        }
+    
+    if (status === 'active' || status === 'inactive') {
+        statusMatchStage = { status: status };
     }
-
-
+    
     const matchConditionPipeline = [
         {
             $lookup: {
                 from: "staffuserdetails",
                 localField: "_id",
                 foreignField: "owner",
-                as: "staffuserdetails"
-            }
+                as: "staffuserdetails",
+            },
         },
         {
             $unwind: {
                 path: "$staffuserdetails",
                 preserveNullAndEmptyArrays: true,
-            }
+            },
         },
-        ...(search
-            ? [
-                  {
-                      $match: {
-                          $or: [
-                              { username: { $regex: search, $options: "i" } },
-                              { "staffuserdetails.email": { $regex: search, $options: "i" } },
-                              { "staffuserdetails.lastname": { $regex: search, $options: "i" } },
-                              { "staffuserdetails.firstname": { $regex: search, $options: "i" } },
-                          ],
-                      },
-                  },
-              ]
-            : []),
-            ...(filter ? [ { $match: filterMatchStage }]: []),
-            ...(status ? [ { $match: statusMatchStage }]: []),
+        ...(search ? [{ $match: searchMatchStage }] : []),
+        ...(filter ? [{ $match: filterMatchStage }] : []),
+        ...(status ? [{ $match: statusMatchStage }] : []),
         {
             $project: {
                 username: 1,
@@ -79,15 +64,15 @@ exports.staffuserlist = async (req, res) => {
                         " ",
                         "$staffuserdetails.middlename",
                         " ",
-                        "$staffuserdetails.lastname"
-                    ]
+                        "$staffuserdetails.lastname",
+                    ],
                 },
                 contact: "$staffuserdetails.contact",
                 address: "$staffuserdetails.address",
                 email: "$staffuserdetails.email",
                 dateofbirth: "$staffuserdetails.dateofbirth",
-                gender: "$staffuserdetails.gender"
-            }
+                gender: "$staffuserdetails.gender",
+            },
         },
         {
             $skip: pageOptions.page * pageOptions.limit,
@@ -95,39 +80,58 @@ exports.staffuserlist = async (req, res) => {
         {
             $limit: pageOptions.limit,
         },
-    ]
-
-    const staffuserlist = await Staffusers.aggregate(matchConditionPipeline)
-    const totalstaffusers = await Staffusers.countDocuments(matchConditionPipeline)
-  
-    const finalpages = Math.ceil(totalstaffusers / pageOptions.limit)
-
-
-    const finaldata = []
-
-    staffuserlist.forEach(temp => {
-        finaldata.push({
-            id: temp._id,
-            username: temp.username,
-            fullname: temp.fullname,
-            status: temp.status,
-            contact: temp.contact,
-            address: temp.address,
-            email: temp.email,
-            dateofbirth: temp.dateofbirth,
-            gender: temp.gender,
-            role: temp.auth,
-        })
-    })
-
+    ];
+    
+    const staffuserlist = await Staffusers.aggregate(matchConditionPipeline);
+    
+    const countPipeline = [
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "_id",
+                foreignField: "owner",
+                as: "staffuserdetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$staffuserdetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        ...(search ? [{ $match: searchMatchStage }] : []),
+        ...(filter ? [{ $match: filterMatchStage }] : []),
+        ...(status ? [{ $match: statusMatchStage }] : []),
+        {
+            $count: "total",
+        },
+    ];
+    
+    const totalstaffusersResult = await Staffusers.aggregate(countPipeline);
+    const totalstaffusers = totalstaffusersResult.length > 0 ? totalstaffusersResult[0].total : 0;
+    
+    const finalpages = Math.ceil(totalstaffusers / pageOptions.limit);
+    
+    const finaldata = staffuserlist.map((temp) => ({
+        id: temp._id,
+        username: temp.username,
+        fullname: temp.fullname,
+        status: temp.status,
+        contact: temp.contact,
+        address: temp.address,
+        email: temp.email,
+        dateofbirth: temp.dateofbirth,
+        gender: temp.gender,
+        role: temp.auth,
+    }));
+    
     const data = {
-        "totalPages": finalpages,
-        "data": finaldata,
-    }
-
-
-    return res.json({ message: "success", data: data});
-
+        totalPages: finalpages,
+        data: finaldata,
+    };
+    
+    return res.json({ message: "success", data });
+    
 
 } 
 
@@ -183,6 +187,23 @@ exports.banunbanstaffuser = async (req, res) => {
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem encountered while changing the status of user id: ${id}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}
+
+exports.editStaffRole = async (req, res) => {
+    const { role, id } = req.body
+
+    if(!id || !role){
+        return res.status(400).json({ message: "failed", data: "Please select a staff and user role."})
+    }
+
+    await Staffusers.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(id)}, { $set: { auth: role }})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while changing user role. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
     })
 

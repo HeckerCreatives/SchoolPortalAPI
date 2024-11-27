@@ -46,7 +46,7 @@ exports.createsection = async (req, res) => {
 }
 
 exports.getAllSections = async (req, res) => {
-    const { page, limit, filter, search } = req.query
+    const { page, limit, filter, search, status } = req.query
 
     const pageOptions = {
         page: parseInt(page) || 0,
@@ -85,6 +85,7 @@ exports.getAllSections = async (req, res) => {
 
 
     const matchCondtionPipeline = [
+        ...(status ? [ { $match: status }]: []),
         {
             $lookup: {
                 from: "gradelevels",
@@ -149,19 +150,45 @@ exports.getAllSections = async (req, res) => {
         console.log(`There's a problem encountered while aggregating section details. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
-    const totalDocuments = await Section.countDocuments(filterMatchStage)
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while aggregating section details. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
+
+    
+    const countPipeline = [...matchCondtionPipeline];
+
+    const irrelevantStages = ["$project", "$skip", "$limit"];
+    const cleanedPipeline = countPipeline.filter(stage => {
+        const key = Object.keys(stage)[0];
+        return !irrelevantStages.includes(key);
+    });
+
+    cleanedPipeline.push({ $count: "total" });
+
+    const totalDocuments = await Section.aggregate(cleanedPipeline)
+        .then(data => (data.length > 0 ? data[0].total : 0)) 
+        .catch(err => {
+            console.log(`There's a problem encountered while counting section details. Error: ${err}`);
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
 
     const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
     
     const finaldata = {
         totalPages: totalPages,
-        data: sectionDetails
+        data: []
     }
+
+    sectionDetails.forEach(temp => {
+        finaldata.data.push({
+            id: temp._id,
+            name: temp.name,
+            status: temp.status,
+            gradelevel: temp.gradelevel,
+            program: temp.program,
+            students: temp.students
+        })
+    })
 
     return res.status(200).json({ message: "success", data: finaldata})
 }

@@ -164,6 +164,25 @@ exports.getSchedules = async (req, res) => {
                 endtime: 1,
             },
         },
+        {
+            $addFields: {
+                starttimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$starttime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$starttime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+                endtimeMinutes: {
+                    $add: [
+                        { $multiply: [{ $toInt: { $substr: ["$endtime", 0, 2] } }, 60] }, // Convert hours to minutes
+                        { $toInt: { $substr: ["$endtime", 3, 2] } } // Convert minutes to integer
+                    ],
+                },
+            },
+        },
+        {
+            $sort: { day: 1, starttimeMinutes: 1, endtimeMinutes: 1 },
+        },
     ];
 
     const schedules = await Schedule.aggregate(matchconditionpipeline)
@@ -172,6 +191,9 @@ exports.getSchedules = async (req, res) => {
         console.log(`There's a problem encountered while fetching schedule of teacher: ${teacherId}. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
     })
+
+    console.log(schedules)
+
     const finaldata = []
 
     schedules.forEach(temp => {

@@ -10,10 +10,10 @@ const SubjectSchema = new mongoose.Schema(
             type: String,
             default: "active"
         },
-        schoolyear: {
+        level: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Schoolyear"
-        },
+            ref: "Gradelevel"
+        }
     },
     {
         timestamps: true

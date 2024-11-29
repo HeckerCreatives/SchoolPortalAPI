@@ -6,22 +6,16 @@ const Subject = require("../models/Subject")
 
 exports.createSubject = async (req, res) => {
 
-    const { name } = req.body
+    const { name, level } = req.body
 
-    if(!name){
+    if(!name || !level){
         return res.status(400).json({ message: "failed", data: "Please input subject name."})
     }
 
-    const currentSchoolYear = await Schoolyear.findOne({ currentstatus: "current" })
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while searching for current school year in create subject. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
 
     await Subject.create({
         name: name,
-        schoolyear: currentSchoolYear._id
+        level: new mongoose.Types.ObjectId(level)
     })
     .then(async data => data)
     .catch(err => {

@@ -2,10 +2,13 @@ const routers = app => {
     console.log("Routers are all available");
 
     app.use("/auth", require("./auth"))
+    app.use("/announcement", require("./announcements"))
     app.use("/requirement", require("./requirements"))
     app.use("/schoolyear", require("./schoolyear"))
     app.use("/examschedule", require("./examschedule"))
     app.use("/entranceexam", require("./entranceexamstatus"))
+    app.use("/news", require("./news"))
+    app.use("/event", require("./event"))
     app.use("/ticketuser", require("./ticketuser"))
     app.use("/program", require("./program"))
     app.use("/gradelevel", require("./gradelevel"))

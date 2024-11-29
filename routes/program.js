@@ -1,9 +1,9 @@
-const { getAllGradelevels } = require("../controllers/gradelevel");
-const { getAllPrograms } = require("../controllers/program");
-
 const router = require("express").Router()
+const { getAllPrograms, CreateProgram } = require("../controllers/program");
+
 
 router
- .get("/getallprogram", getAllPrograms)
+.get("/getallprogram", getAllPrograms)
+.get("/createprogram", CreateProgram)
 
 module.exports = router;

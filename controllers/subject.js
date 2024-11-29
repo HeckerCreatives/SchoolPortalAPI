@@ -51,7 +51,7 @@ exports.getSubjects = async (req, res) => {
                   },
               ]
             : []),
-        ...(status ? [ { $match: status }]: []),
+        ...(status ? [ { $match: { status: status } }]: []),
         {
             $skip: pageOptions.page * pageOptions.limit   
         },

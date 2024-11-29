@@ -208,7 +208,7 @@ exports.getAdvisory = async (req, res) => {
                   },
               ]
             : []),
-        ...(status ? [ { $match: status }]: []),
+        ...(status ? [ { $match: { status: status }}]: []),
         ...(filter ? [{ $match: filterMatchStage }] : []),
         {
             $project: {

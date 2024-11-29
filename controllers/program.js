@@ -1,4 +1,4 @@
-const Program = require("../models/program")
+const Program = require("../models/Program")
 
 
 exports.getAllPrograms = async (req, res) => {
@@ -24,5 +24,20 @@ exports.getAllPrograms = async (req, res) => {
 }
 
 exports.CreateProgram = async (req, res) => {
-    
+    const { name } = req.body
+
+    if(!name){
+        return res.status(400).json({ message: "failed", data: "Please input program name."})
+    }
+
+    await Program.create({
+        name: name
+    })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while creating program. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
 }

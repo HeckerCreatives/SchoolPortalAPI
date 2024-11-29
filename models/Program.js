@@ -1,17 +1,23 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require('mongoose');
 
-
+// Define the Program schema
 const ProgramSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-        }
+  {
+    name: {
+      type: String,
+      required: true,
     },
-    {
-        timestamps: true
-    }
-)
+    status: {
+      type: String,
+      default: "active",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
+// Check if the model is already defined, otherwise define it
+const Program = mongoose.models.Program || mongoose.model("Program", ProgramSchema);
 
-const Program = mongoose.model("Program", ProgramSchema)
-module.exports = Program
+module.exports = Program;

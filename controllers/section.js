@@ -83,9 +83,11 @@ exports.getAllSections = async (req, res) => {
     }
     
 
+    console.log(status)
+
 
     const matchCondtionPipeline = [
-        ...(status ? [ { $match: status }]: []),
+        ...(status ? [ { $match: { status: status }}]: []),
         {
             $lookup: {
                 from: "gradelevels",
@@ -194,8 +196,10 @@ exports.getAllSections = async (req, res) => {
 }
 
 exports.editSection = async (req, res) => {
-    const { id, name } = req.query
+    const { id, name } = req.body
 
+
+    console.log(id)
     if(!id || !name){
         return res.status(400).json({ message: "failed", data: "Please input new section name and Section ID"})
     }

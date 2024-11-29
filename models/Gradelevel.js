@@ -9,7 +9,11 @@ const GradeLevelSchema = new mongoose.Schema(
         program: {
             type: mongoose.Schema.Types.ObjectId, // nursery, pre-school, elementary, junior-high-school and senior-high-school
             ref: "Program"
-        }
+        },
+        status: {
+            type: String,
+            default: "active"
+        },
     },
     {
         timestamps: true

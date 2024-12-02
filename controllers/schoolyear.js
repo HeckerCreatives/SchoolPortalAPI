@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose")
 const Schoolyear = require("../models/Schoolyear")
 const Ticketusers = require("../models/Ticketusers")
 const Schedule = require("../models/Schedule")
+const Requirements = require("../models/Requirements")
 
 
 exports.createschoolyear = async (req, res) => {
@@ -16,22 +17,13 @@ exports.createschoolyear = async (req, res) => {
         owner: new mongoose.Types.ObjectId(id),
         startyear: startyear,
         endyear: endyear,
-        status: "inactive"
+        currentstatus: "current"
     })
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem while creating school year. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
-
-    return res.status(200).json({ message: "success" })
-}
-
-exports.setCurrentSchoolYear = async (req, res) => {
-    const { id } = req.query
-
-    // delete all ticket users if changed current school year
-    // Reset Schedule
 
     await Ticketusers.deleteMany()
     .then(data => data)
@@ -40,12 +32,13 @@ exports.setCurrentSchoolYear = async (req, res) => {
         return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
     })
 
-    await Schedule.updateMany({}, { $set: { status: "inactive" } })
+    await Requirements.deleteMany()
     .then(data => data)
     .catch(err => {
-        console.log(`There's a problem encountered while updating status of schedule in current school year. Error ${err}`)
+        console.log(`There's a problem encountered while deleting requirements. Error ${err}`)
         return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
     })
+
 
     await Schoolyear.findOneAndUpdate(
         { currentstatus: "current" },
@@ -57,16 +50,7 @@ exports.setCurrentSchoolYear = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    await Schoolyear.findByIdAndUpdate(
-            id,
-            { $set: { currentstatus: "current" } },
-            { new: true } 
-        )
-        .then(data => data)
-        .catch(err => {
-            console.log(`There's a problem while updating the new current school year. Error ${err}`)
-            return res.status(404).json({ message: "failed", data: "School year with the provided ID not found." });
-        })
+
 
     return res.status(200).json({ message: "success" })
 }

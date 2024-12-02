@@ -1,4 +1,4 @@
-const { createsection, getAllSections, editSection, deleteSection } = require("../controllers/section")
+const { createsection, getAllSections, editSection, deleteSection, getSectionByGradeLevel } = require("../controllers/section")
 const { protectsuperadmin } = require("../middleware/middleware")
 
 const router = require("express").Router()
@@ -6,6 +6,7 @@ const router = require("express").Router()
 router
 .post("/createsection", protectsuperadmin, createsection)
 .get("/getallsections", protectsuperadmin, getAllSections)
+.get("/getsectionbygradelevel", protectsuperadmin, getSectionByGradeLevel)
 .post("/editsection", protectsuperadmin, editSection)
 .get("/deletesection", protectsuperadmin, deleteSection)
 

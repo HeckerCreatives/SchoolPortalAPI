@@ -1,5 +1,7 @@
 const { default: mongoose } = require("mongoose")
 const Schoolyear = require("../models/Schoolyear")
+const Ticketusers = require("../models/Ticketusers")
+const Schedule = require("../models/Schedule")
 
 
 exports.createschoolyear = async (req, res) => {
@@ -29,6 +31,21 @@ exports.setCurrentSchoolYear = async (req, res) => {
     const { id } = req.query
 
     // delete all ticket users if changed current school year
+    // Reset Schedule
+
+    await Ticketusers.deleteMany()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting ticket users. Error ${err}`)
+        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
+    })
+
+    await Schedule.updateMany({}, { $set: { status: "inactive" } })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while updating status of schedule in current school year. Error ${err}`)
+        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
+    })
 
     await Schoolyear.findOneAndUpdate(
         { currentstatus: "current" },

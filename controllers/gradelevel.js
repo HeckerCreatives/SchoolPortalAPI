@@ -218,3 +218,65 @@ exports.gradelevellist = async (req, res) => {
 
     return res.status(200).json({ message: "success", data: finaldata })
 }
+
+exports.getGradeLevelByProgram = async (req, res) => {
+    const { program } = req.query;
+
+    // Construct query based on the presence of the `program` parameter
+    const query = { status: "active" };
+    if (program) {
+        query.program = new mongoose.Types.ObjectId(program);
+    }
+
+    const gradeLevelData = await Gradelevel.find(query)
+        .sort({ level: 1 })
+        .then(data => data)
+        .catch(err => {
+            console.log(
+                `There's a problem encountered while fetching Grade Level data. Error: ${err}`
+            );
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact admin for more details.",
+            });
+        });
+
+    if (!gradeLevelData || gradeLevelData.length === 0) {
+        return res.status(400).json({
+            message: "failed",
+            data: "No existing grade level data.",
+        });
+    }
+
+    // Sort data to prioritize kindergarten levels
+    const sortedData = gradeLevelData.sort((a, b) => {
+        const isKindergartenA = a.level.toLowerCase().includes("kindergarten");
+        const isKindergartenB = b.level.toLowerCase().includes("kindergarten");
+
+        if (isKindergartenA && !isKindergartenB) {
+            return -1;
+        }
+        if (!isKindergartenA && isKindergartenB) {
+            return 1;
+        }
+
+        const levelA = a.level.match(/(\d+)/)
+            ? parseInt(a.level.match(/(\d+)/)[0], 10)
+            : 0;
+        const levelB = b.level.match(/(\d+)/)
+            ? parseInt(b.level.match(/(\d+)/)[0], 10)
+            : 0;
+
+        return levelA - levelB;
+    });
+
+    // Format the final data
+    const finalData = sortedData.map((temp) => ({
+        id: temp._id,
+        level: temp.level,
+        program: temp.program,
+        status: temp.status,
+    }));
+
+    return res.status(200).json({ message: "success", data: finalData });
+};

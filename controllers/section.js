@@ -241,3 +241,47 @@ exports.deleteSection = async (req, res) => {
 
     return res.status(200).json({ message: "success" })
 }
+
+exports.getSectionByGradeLevel = async (req, res) => {
+    const { level } = req.query;
+
+    let validLevel = null;
+    if (level && level.length === 24 && mongoose.Types.ObjectId.isValid(level)) {
+        validLevel = new mongoose.Types.ObjectId(level);
+    }
+
+    const query = { status: "active" };
+    if (validLevel) {
+        query.gradelevel = validLevel;
+    }
+
+    const sectionData = await Section.find(query)
+        .sort({ name: 1 }) 
+        .then(data => data)
+        .catch(err => {
+            console.log(
+                `There's a problem encountered while fetching Section data. Error: ${err}`
+            );
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact admin for more details.",
+            });
+        });
+
+    if (!sectionData || sectionData.length === 0) {
+        return res.status(400).json({
+            message: "failed",
+            data: "No existing section data.",
+        });
+    }   
+
+    const finalData = sectionData.map((section) => ({
+        id: section._id,
+        name: section.name,
+        program: section.program,
+        level: section.gradelevel,
+        status: section.status,
+    }));
+
+    return res.status(200).json({ message: "success", data: finalData });
+};

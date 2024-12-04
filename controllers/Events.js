@@ -3,7 +3,7 @@ const Events = require("../models/Events")
 
 exports.createevent = async (req, res) => {
     const { id, username } = req.user
-    const { title, content } = req.body
+    const { title, content, eventdate } = req.body
 
     if(!title || !content){
         return res.status(400).json({ message: "failed", data: "Please input title and content."})
@@ -20,7 +20,8 @@ exports.createevent = async (req, res) => {
         owner: id,
         title: title,
         content: content,
-        image: image
+        image: image,
+        eventdate: eventdate
     })
     .then(data => data)
     .catch(err => {
@@ -33,7 +34,7 @@ exports.createevent = async (req, res) => {
 
 exports.editevent = async (req, res) => {
     const { id, username } = req.user
-    const { title, content, event } = req.body
+    const { title, content, event, eventdate } = req.body
 
     if(!event){
         return res.status(400).json({ message: "failed", data: "Please select an event to edit."})
@@ -55,7 +56,8 @@ exports.editevent = async (req, res) => {
             owner: id,
             title: title,
             content: content,
-            image: image
+            image: image,
+            eventdate: eventdate
         }
     })
     .then(data => data)
@@ -132,6 +134,7 @@ exports.getevents = async (req, res) => {
             title: temp.title,
             content: temp.content,
             image: temp.image,
+            eventdate: temp.eventdate,
             createdAt: temp.createdAt
         })
     })

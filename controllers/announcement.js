@@ -3,7 +3,7 @@ const Announcements = require("../models/Announcement")
 
 exports.createannouncement = async (req, res) => {
     const { id, username } = req.user
-    const { title, content } = req.body
+    const { title, content, writer } = req.body
 
     if(!title || !content){
         return res.status(400).json({ message: "failed", data: "Please input title and content."})
@@ -17,7 +17,8 @@ exports.createannouncement = async (req, res) => {
         owner: id,
         title: title,
         content: content,
-        image: image
+        image: image,
+        writer: writer,
     })
     .then(data => data)
     .catch(err => {
@@ -30,7 +31,7 @@ exports.createannouncement = async (req, res) => {
 
 exports.editannouncement = async (req, res) => {
     const { id, username } = req.user
-    const { title, content, announcement } = req.body
+    const { title, content, writer, announcement } = req.body
 
     if(!announcement){
         return res.status(400).json({ message: "failed", data: "Please select an announcement to edit."})
@@ -49,7 +50,8 @@ exports.editannouncement = async (req, res) => {
             owner: id,
             title: title,
             content: content,
-            image: image
+            image: image,
+            writer: writer,
         }
     })
     .then(data => data)
@@ -126,7 +128,8 @@ exports.getannouncement = async (req, res) => {
             title: temp.title,
             content: temp.content,
             image: temp.image,
-            createdAt: temp.createdAt
+            createdAt: temp.createdAt,
+            writer: temp.writer
         })
     })
 

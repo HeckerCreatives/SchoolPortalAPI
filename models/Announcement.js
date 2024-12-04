@@ -7,6 +7,10 @@ const AnnouncementSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Staffusers"
         },
+        writer: {
+            type: String,
+            index: true
+        },
         title: {
             type: String,
             index: true,

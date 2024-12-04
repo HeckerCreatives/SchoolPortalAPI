@@ -7,6 +7,10 @@ const EventSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Staffusers"
         },
+        eventdate: {
+            type: String,
+            index: true
+        },
         title: {
             type: String,
             index: true,

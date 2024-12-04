@@ -1,5 +1,5 @@
 const { createevent, editevent, deleteevent, getevents } = require("../controllers/Events")
-const { protectadmin } = require("../middleware/middleware")
+const { protectadmin, protectsuperadmin } = require("../middleware/middleware")
 
 const router = require("express").Router()
 const upload = require("../middleware/upload")
@@ -8,7 +8,7 @@ const uploadimg = upload.single("image")
 
 
 router
- .post("/createevent", protectadmin, function (req, res, next){
+ .post("/createevent", protectsuperadmin, function (req, res, next){
     uploadimg(req, res, function(err){
         if(err){
             return res.status(400).send({ message: "failed", data: err.message })
@@ -16,7 +16,7 @@ router
         next()
     })},
     createevent)
- .post("/editevent", protectadmin, function (req, res, next){
+ .post("/editevent", protectsuperadmin, function (req, res, next){
     uploadimg(req, res, function(err){
         if(err){
             return res.status(400).send({ message: "failed", data: err.message })
@@ -24,7 +24,7 @@ router
         next()
     })},
     editevent)
- .get("/deleteevent", protectadmin, deleteevent)
+ .get("/deleteevent", protectsuperadmin, deleteevent)
  .get("/getevents", getevents)
 
 module.exports = router

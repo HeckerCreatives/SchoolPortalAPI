@@ -214,7 +214,7 @@ exports.editSchedule = async (req, res) => {
           data: "There's a problem with the server. Please contact support for more details.",
         });
       });
-  };
+};
 
 exports.getSchedulesByTeacher = async (req, res) => {
     const { teacherId } = req.query;
@@ -444,4 +444,22 @@ exports.getSchedulesBySection = async (req, res) => {
     })
 
     return res.status(200).json({ message: "success", data: finaldata })
+}
+
+exports.deletschedule = async (req, res) => {
+    const { id, username } = req.user
+    const { scheduleid } = req.query
+
+    if(!scheduleid){
+        return res.status(400).json({ message: "failed", data: "Please select an event to delete."})
+    }
+
+    await Schedule.findOneAndDelete({ _id: new mongoose.Types.ObjectId(scheduleid)})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting schedule. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
 }

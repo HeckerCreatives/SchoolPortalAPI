@@ -4,7 +4,6 @@ const Ticketusers = require("../models/Ticketusers")
 const Schedule = require("../models/Schedule")
 const Requirements = require("../models/Requirements")
 
-
 exports.createschoolyear = async (req, res) => {
     const { id } = req.user
     const { startyear, endyear } = req.body
@@ -17,40 +16,13 @@ exports.createschoolyear = async (req, res) => {
         owner: new mongoose.Types.ObjectId(id),
         startyear: startyear,
         endyear: endyear,
-        currentstatus: "current"
+        status: "inactive"
     })
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem while creating school year. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
-
-    await Ticketusers.deleteMany()
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while deleting ticket users. Error ${err}`)
-        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
-    })
-
-    await Requirements.deleteMany()
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while deleting requirements. Error ${err}`)
-        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
-    })
-
-
-    await Schoolyear.findOneAndUpdate(
-        { currentstatus: "current" },
-        { $set: { currentstatus: "inactive" } },
-        { new: true } 
-    )
-    .catch(err => {
-        console.log(`There's a problem while updating the previous school year to inactive. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
-
-
 
     return res.status(200).json({ message: "success" })
 }
@@ -79,3 +51,52 @@ exports.getCurrentSchoolYear = async (req, res) => {
     return res.status(200).json({ message: "success", data: schoolyeardata})
 }
 
+
+
+exports.setCurrentSchoolYear = async (req, res) => {
+    const { id } = req.query
+
+    await Ticketusers.deleteMany()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting ticket users. Error ${err}`)
+        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
+    })
+
+    await Schedule.updateMany({}, { $set: { status: "inactive" } })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while updating status of schedule in current school year. Error ${err}`)
+        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
+    })
+
+    await Requirements.deleteMany()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting requirements. Error ${err}`)
+        return res.status(400).json({ message: "bad-request",  data: "There's a problem with the server. Please try again later."})
+    })
+
+    await Schoolyear.findOneAndUpdate(
+        { currentstatus: "current" },
+        { $set: { currentstatus: "inactive" } },
+        { new: true } 
+    )
+    .catch(err => {
+        console.log(`There's a problem while updating the previous school year to inactive. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    await Schoolyear.findByIdAndUpdate(
+            id,
+            { $set: { currentstatus: "current" } },
+            { new: true } 
+        )
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem while updating the new current school year. Error ${err}`)
+            return res.status(404).json({ message: "failed", data: "School year with the provided ID not found." });
+        })
+
+    return res.status(200).json({ message: "success" })
+}

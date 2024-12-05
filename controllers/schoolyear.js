@@ -12,6 +12,14 @@ exports.createschoolyear = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please input start year and end year"})
     }
 
+    const isExisting = await Schoolyear.findOne({ startyear: startyear, endyear: endyear });
+
+    if (isExisting) {
+        return res.status(400).json({
+            message: "failed",
+            data: "School year already exists",
+        });
+    }
     await Schoolyear.create({
         owner: new mongoose.Types.ObjectId(id),
         startyear: startyear,
@@ -29,14 +37,35 @@ exports.createschoolyear = async (req, res) => {
 
 exports.getSchoolYear = async (req, res) => {
 
+    const { page, limit } = req.query
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10
+    }
+
     const schoolyeardata = await Schoolyear.find()
+    .skip(pageOptions.page * pageOptions.limit)
+    .limit(pageOptions.limit)
+    .sort({ createdAt: -1 })  
     .then(data => data)
     .catch(err => {
-        console.log(`There's a problem while fetching school year. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
+      console.log(`There's a problem while fetching school year. Error: ${err}`);
+      return res.status(400).json({
+        message: "bad-request",
+        data: "There's a problem with the server. Please contact support for more details."
+      });
+    });
 
-    return res.status(200).json({ message: "success", data: schoolyeardata})
+    const totalDocuments = await Schoolyear.countDocuments();
+
+    const totalPages = Math.ceil(totalDocuments / pageOptions.limit);
+
+    const data = {
+        totalpages: totalPages,
+        data: schoolyeardata
+    }
+
+    return res.status(200).json({ message: "success", data: data})
 }
 
 exports.getCurrentSchoolYear = async (req, res) => {

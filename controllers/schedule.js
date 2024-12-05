@@ -120,10 +120,10 @@ exports.editSchedule = async (req, res) => {
     }
   
     const existingSubject = await Schedule.findOne({
-      _id: { $ne: schedule }, 
-      section: new mongoose.Types.ObjectId(section),
-      subject: new mongoose.Types.ObjectId(subject),
-      day,
+        section: new mongoose.Types.ObjectId(section),
+        subject: new mongoose.Types.ObjectId(subject),
+        day,
+        _id: { $ne: new mongoose.Types.ObjectId(schedule) }, 
     });
   
     if (existingSubject) {

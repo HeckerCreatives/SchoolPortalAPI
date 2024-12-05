@@ -12,7 +12,7 @@ exports.createschoolyear = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please input start year and end year"})
     }
 
-    const isExisting = await Schoolyear.findOne({ startyear: startyear, endyear: endyear });
+    const isExisting = await Schoolyear.findOne({ startyear: parseInt(startyear), endyear: parseInt(endyear) });
 
     if (isExisting) {
         return res.status(400).json({

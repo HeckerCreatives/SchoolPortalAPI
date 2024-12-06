@@ -5,7 +5,7 @@ const router = require("express").Router()
 
 router
 .post("/createschoolyear", protectsuperadmin, createschoolyear)
-.post("/setcurrentschoolyear", protectsuperadmin, setCurrentSchoolYear)
+.get("/setcurrentschoolyear", protectsuperadmin, setCurrentSchoolYear)
 .get("/getschoolyear", protectsuperadmin, getSchoolYear)
 .get("/getcurrentschoolyear", protectsuperadmin, getCurrentSchoolYear)
 module.exports = router

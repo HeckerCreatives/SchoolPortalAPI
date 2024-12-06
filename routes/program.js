@@ -4,6 +4,6 @@ const { getAllPrograms, CreateProgram } = require("../controllers/program");
 
 router
 .get("/getallprogram", getAllPrograms)
-.get("/createprogram", CreateProgram)
+.post("/createprogram", CreateProgram)
 
 module.exports = router;

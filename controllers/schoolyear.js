@@ -24,7 +24,7 @@ exports.createschoolyear = async (req, res) => {
         owner: new mongoose.Types.ObjectId(id),
         startyear: startyear,
         endyear: endyear,
-        status: "inactive"
+        currentstatus: "inactive"
     })
     .then(data => data)
     .catch(err => {

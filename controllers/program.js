@@ -110,39 +110,44 @@ exports.getAllPrograms = async (req, res) => {
     return res.status(200).json({ message: "success", data: finaldata})
 }
 
-exports.getProgramEnrollmentSchedules = async (req, res) => {
-    try {
-      // Fetch enrollment schedules and populate program details
-      const programData = await EnrollmentSchedule.find()
-        .populate("program", "name status") // Populate only 'name' and 'status' fields from Program
-        .exec();
-  
-      if (!programData || programData.length === 0) {
-        return res.status(400).json({
-          message: "failed",
-          data: "No existing program data.",
-        });
-      }
-  
-      // Prepare the final response data
-      const finaldata = programData.map((temp) => ({
-        _id: temp._id,
-        program: temp.program ? { name: temp.program.name, status: temp.program.status } : null,
-        startdate: temp.startdate,
-        enddate: temp.enddate,
-      }));
-  
-      return res.status(200).json({
-        message: "success",
-        data: finaldata,
-      });
-    } catch (err) {
-      console.error(
-        `There's a problem encountered while fetching program data. Error: ${err}`
-      );
-      return res.status(500).json({
-        message: "bad-request",
-        data: "There's a problem with the server. Please contact admin for more details.",
-      });
-    }
-  };
+
+exports.getAllProgramsWithEnrollmentSchedule = async (req, res) => {
+    const programwithenrollmentschedule = await Program.aggregate([
+        {
+            $lookup: {
+                from: "enrollmentschedules",
+                localField: "_id",
+                foreignField: "program",
+                as: "enrollment"
+            },
+        },
+        {
+            $unwind: {
+                path: '$enrollment',
+                preserveNullAndEmptyArrays: true,
+            }
+        }
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching programs with enrollment schedule. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+    const finaldata = []
+
+    console.log(programwithenrollmentschedule)
+    programwithenrollmentschedule.forEach(temp => {
+        const { _id, name, status, enrollment } = temp
+
+        finaldata.push({
+            id: _id,
+            name: name,
+            status: status,
+            enrollmentid: enrollment?._id || null,
+            startdate: enrollment?.startdate || null,
+            enddate: enrollment?.enddate || null
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata})
+}

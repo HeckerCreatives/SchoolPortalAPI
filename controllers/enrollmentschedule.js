@@ -14,6 +14,12 @@ exports.createenrollmentschedule = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please select start date and end date for enrollment."})
     }
 
+    const isExisting = await EnrollmentSchedule.findOne({ program: new mongoose.Types.ObjectId(program)})
+
+    if(isExisting){
+        return res.status(400).json({ message: "failed", data: "There's already an existing enrollment schedule on this program."})    
+    }
+
     await EnrollmentSchedule.create({
         program: program,
         startdate: startdate,

@@ -98,10 +98,26 @@ exports.getAllSections = async (req, res) => {
         },
         {
             $lookup: {
+                from: "advisories",
+                localField: "_id",
+                foreignField: "section",
+                as: "adviser"
+            }
+        },
+        {
+            $lookup: {
                 from: "programs",
                 localField: "program",
                 foreignField: "_id",
                 as: "programdetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "adviser.teacher",
+                foreignField: "owner",
+                as: "teacherdetails"
             }
         },
         {
@@ -115,6 +131,18 @@ exports.getAllSections = async (req, res) => {
                 path: "$programdetails",
                 preserveNullAndEmptyArrays: true,
             },
+        },
+        {
+            $unwind: {
+                path: "$adviser",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $unwind: {
+                path: "$teacherdetails",
+                preserveNullAndEmptyArrays: true,
+            }
         },
         ...(search
             ? [
@@ -134,7 +162,16 @@ exports.getAllSections = async (req, res) => {
                 status: 1,
                 students: 1,
                 gradelevel: "$gradeleveldetails.level",
-                program: "$programdetails.name"
+                program: "$programdetails.name",
+                teachername: {
+                    $concat: [
+                        { $ifNull: ["$teacherdetails.firstname", ""] },
+                        " ",
+                        { $ifNull: ["$teacherdetails.middlename", ""] },
+                        " ",
+                        { $ifNull: ["$teacherdetails.lastname", ""] }
+                    ]
+                }
             }
         },
         {
@@ -181,6 +218,7 @@ exports.getAllSections = async (req, res) => {
         data: []
     }
 
+
     sectionDetails.forEach(temp => {
         finaldata.data.push({
             id: temp._id,
@@ -188,6 +226,7 @@ exports.getAllSections = async (req, res) => {
             status: temp.status,
             gradelevel: temp.gradelevel,
             program: temp.program,
+            teachername: temp.teachername,
             students: temp.students
         })
     })

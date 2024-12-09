@@ -24,6 +24,17 @@ exports.CreateExamSchedule = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "There's no existing school year."})
     }
 
+    const isExisting = await Examschedule.findOne({
+        starttime,
+        endtime,
+        date,
+        schoolyear: currentschoolyear._id
+    })
+
+    if(!isExisting){
+        return res.status(400).json({ message: "failed", data: "There's already a schedule created at the same time and at the same day."})
+    }
+
     await Examschedule.create({
         starttime: starttime,
         endtime: endtime,

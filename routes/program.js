@@ -1,9 +1,12 @@
 const router = require("express").Router()
-const { getAllPrograms, CreateProgram } = require("../controllers/program");
+const { getAllPrograms, CreateProgram, DeleteProgram, EditProgram } = require("../controllers/program");
+const { protectsuperadmin } = require("../middleware/middleware");
 
 
 router
 .get("/getallprogram", getAllPrograms)
-.post("/createprogram", CreateProgram)
+.get("/deleteprogram", protectsuperadmin, DeleteProgram)
+.post("/createprogram", protectsuperadmin, CreateProgram)
+.post("/editprogram", protectsuperadmin, EditProgram)
 
 module.exports = router;

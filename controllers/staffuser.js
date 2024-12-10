@@ -148,11 +148,15 @@ exports.editStaffUserDetails = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Please input a valid email."})
     }
 
-    const isEmailExisting = await Staffuserdetails.findOne({ email: { $regex: `^${email}$`, $options: 'i' } })
+    const isEmailExisting = await Staffuserdetails.findOne({ 
+        email: { $regex: `^${email}$`, $options: 'i' }, 
+        owner: { $ne: new mongoose.Types.ObjectId(id) }, 
+    })
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem encountered while searching for email: ${username} Error: ${err}`)
     })
+
    
     if(isEmailExisting){
         return res.status(400).json({ message: "bad-request", data: "Email has already been used."})
@@ -209,3 +213,144 @@ exports.editStaffRole = async (req, res) => {
 
     return res.status(200).json({ message: "success" })
 }
+
+exports.getteacherlist = async (req, res) => {
+    const { page, limit, status, search } = req.query;
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10,
+    };
+    
+    let statusMatchStage = {};
+    let searchMatchStage = {};
+    
+    if (search) {
+        searchMatchStage = {
+            $or: [
+                { username: { $regex: search, $options: 'i' } },
+                { "staffuserdetails.email": { $regex: search, $options: 'i' } },
+                { "staffuserdetails.lastname": { $regex: search, $options: 'i' } },
+                { "staffuserdetails.firstname": { $regex: search, $options: 'i' } },
+            ],
+        };
+    }
+    
+    if (status === 'active' || status === 'inactive') {
+        statusMatchStage = { status: status };
+    }
+    
+    const matchConditionPipeline = [
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "_id",
+                foreignField: "owner",
+                as: "staffuserdetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$staffuserdetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $match: {
+                $or: [
+                    { auth: "teacher" },
+                    { auth: "adviser" },
+                ],
+            },
+        },
+        ...(search ? [{ $match: searchMatchStage }] : []),
+        ...(status ? [{ $match: statusMatchStage }] : []),
+        {
+            $project: {
+                username: 1,
+                status: 1,
+                _id: 1,
+                auth: 1,
+                fullname: {
+                    $concat: [
+                        "$staffuserdetails.firstname",
+                        " ",
+                        "$staffuserdetails.middlename",
+                        " ",
+                        "$staffuserdetails.lastname",
+                    ],
+                },
+                contact: "$staffuserdetails.contact",
+                address: "$staffuserdetails.address",
+                email: "$staffuserdetails.email",
+                dateofbirth: "$staffuserdetails.dateofbirth",
+                gender: "$staffuserdetails.gender",
+            },
+        },
+        {
+            $skip: pageOptions.page * pageOptions.limit,
+        },
+        {
+            $limit: pageOptions.limit,
+        },
+    ];
+    
+    const staffuserlist = await Staffusers.aggregate(matchConditionPipeline);
+    
+    const countPipeline = [
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "_id",
+                foreignField: "owner",
+                as: "staffuserdetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$staffuserdetails",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $match: {
+                $or: [
+                    { auth: "teacher" },
+                    { auth: "adviser" },
+                ],
+            },
+        },
+        ...(search ? [{ $match: searchMatchStage }] : []),
+        ...(status ? [{ $match: statusMatchStage }] : []),
+        {
+            $count: "total",
+        },
+    ];
+    
+    const totalstaffusersResult = await Staffusers.aggregate(countPipeline);
+    const totalstaffusers = totalstaffusersResult.length > 0 ? totalstaffusersResult[0].total : 0;
+    
+    const finalpages = Math.ceil(totalstaffusers / pageOptions.limit);
+    
+    const finaldata = staffuserlist.map((temp) => ({
+        id: temp._id,
+        username: temp.username,
+        fullname: temp.fullname,
+        status: temp.status,
+        contact: temp.contact,
+        address: temp.address,
+        email: temp.email,
+        dateofbirth: temp.dateofbirth,
+        gender: temp.gender,
+        role: temp.auth,
+    }));
+    
+    const data = {
+        totalPages: finalpages,
+        data: finaldata,
+    };
+    
+    return res.json({ message: "success", data });
+    
+
+} 

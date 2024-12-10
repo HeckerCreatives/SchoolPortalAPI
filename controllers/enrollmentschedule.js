@@ -35,12 +35,14 @@ exports.createenrollmentschedule = async (req, res) => {
 }
 
 exports.getenrollmentschedule = async (req, res) => {
-    const { page, limit, search } = req.query
+    const { page, limit, search } = req.query;
 
     const pageOptions = {
         page: parseInt(page) || 0,
         limit: parseInt(limit) || 10,
-    }
+    };
+
+    const currentDate = new Date();
 
     const matchconditionpipeline = [
         {
@@ -48,20 +50,32 @@ exports.getenrollmentschedule = async (req, res) => {
                 from: "programs",
                 localField: "program",
                 foreignField: "_id",
-                as: "programdetails"
-            }
+                as: "programdetails",
+            },
         },
         {
             $unwind: {
                 path: "$programdetails",
                 preserveNullAndEmptyArrays: true,
-            }
+            },
+        },
+        {
+            $addFields: {
+                startdateConverted: { $dateFromString: { dateString: "$startdate" } },
+                enddateConverted: { $dateFromString: { dateString: "$enddate" } },
+            },
+        },
+        {
+            $match: {
+                startdateConverted: { $lte: currentDate },
+                enddateConverted: { $gte: currentDate },
+            },
         },
         ...(search
             ? [
                   {
                       $match: {
-                        "$programdetails.name": { $regex: search, $options: "i" } ,
+                          "programdetails.name": { $regex: search, $options: "i" },
                       },
                   },
               ]
@@ -71,50 +85,77 @@ exports.getenrollmentschedule = async (req, res) => {
                 _id: 1,
                 startdate: 1,
                 enddate: 1,
-                program: "$programdetails.name"
-            }
+                program: "$programdetails.name",
+            },
         },
         {
-            $skip: pageOptions.page * pageOptions.limit
+            $skip: pageOptions.page * pageOptions.limit,
         },
         {
-            $limit: pageOptions.limit
-        }
-    ]
+            $limit: pageOptions.limit,
+        },
+    ];
 
     const esched = await EnrollmentSchedule.aggregate(matchconditionpipeline)
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while fetching Enrollment Schedule. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
+        .then((data) => data)
+        .catch((err) => {
+            console.log(
+                `There's a problem encountered while fetching Enrollment Schedule. Error: ${err}`
+            );
+            return res
+                .status(400)
+                .json({
+                    message: "bad-request",
+                    data: "There's a problem with the server. Please contact support for more details.",
+                });
+        });
 
-    const totalDocuments = await EnrollmentSchedule.countDocuments(matchconditionpipeline)
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while count enrollment schedule total documents. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
+    const totalDocuments = await EnrollmentSchedule.aggregate([
+        {
+            $addFields: {
+                startdateConverted: { $dateFromString: { dateString: "$startdate" } },
+                enddateConverted: { $dateFromString: { dateString: "$enddate" } },
+            },
+        },
+        {
+            $match: {
+                startdateConverted: { $lte: currentDate },
+                enddateConverted: { $gte: currentDate },
+            },
+        },
+    ])
+        .then((data) => data.length)
+        .catch((err) => {
+            console.log(
+                `There's a problem encountered while counting total enrollment schedules. Error: ${err}`
+            );
+            return res
+                .status(400)
+                .json({
+                    message: "bad-request",
+                    data: "There's a problem with the server. Please contact support for more details.",
+                });
+        });
 
-    const totalPages = Math.ceil(totalDocuments / pageOptions.limit)
+    const totalPages = Math.ceil(totalDocuments / pageOptions.limit);
 
     const data = {
         totalpages: totalPages,
-        data: []
-    }
+        data: [],
+    };
 
-    esched.forEach(temp => {
-        const { _id, startdate, enddate, program } = temp
+    esched.forEach((temp) => {
+        const { _id, startdate, enddate, program } = temp;
 
         data.data.push({
             id: _id,
             startdate: startdate,
             enddate: enddate,
-            program: program
-        })
-    })
-    return res.status(200).json({ message: "success", data: data})
-}
+            program: program,
+        });
+    });
+    return res.status(200).json({ message: "success", data: data });
+};
 
 exports.editenrollmentschedule = async (req, res) => {
     const { startdate, enddate, id } = req.body

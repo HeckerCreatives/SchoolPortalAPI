@@ -1,13 +1,18 @@
-const { getAllGradelevels, deletegradelevel, editgradelevel, creategradelevel, gradelevellist, getGradeLevelByProgram } = require("../controllers/gradelevel")
+const { getAllGradelevels, deletegradelevel, editgradelevel, creategradelevel, gradelevellist, getGradeLevelByProgram } = require("../controllers/gradelevel");
+const { protectsuperadmin } = require("../middleware/middleware");
 
 const router = require("express").Router()
 
 router
 .get("/getallgradelevel", getAllGradelevels)
 .get("/getgradelevelbyprogram", getGradeLevelByProgram)
+.get("/getgradelevelbyenrollmentschedule", getGradeLevelByProgram)
 .get("/gradelevellist", gradelevellist)
-.post("/creategradelevel", creategradelevel)
-.post("/editgradelevel", editgradelevel)
-.get("/deletegradelevel", deletegradelevel)
+
+
+// #region SUPERADMIN
+.post("/creategradelevel", protectsuperadmin, creategradelevel)
+.post("/editgradelevel", protectsuperadmin, editgradelevel)
+.get("/deletegradelevel", protectsuperadmin, deletegradelevel)
 
 module.exports = router;

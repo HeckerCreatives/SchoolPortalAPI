@@ -354,3 +354,58 @@ exports.getteacherlist = async (req, res) => {
     
 
 } 
+
+
+
+
+exports.getUserDetails = async (req, res) => {
+        const { id } = req.user;
+
+    const userdetails = await Staffusers.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(id) },
+            },
+            {
+                $lookup: {
+                    from: "staffuserdetails", 
+                    localField: "_id", 
+                    foreignField: "owner",
+                    as: "staffdetails",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$staffdetails",
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            {
+                $project: {
+                    _id: 1,
+                    username: 1,
+                    auth: 1,
+                    status: 1,
+                    fullname: {
+                        $concat: [
+                            "$staffdetails.firstname",
+                            " ",
+                            "$staffdetails.middlename",
+                            " ",
+                            "$staffdetails.lastname",
+                        ],
+                    },
+                    email: "$staffdetails.email",
+                    contact: "$staffdetails.contact",
+                },
+            },
+        ]);
+
+        if (!userdetails || userdetails.length === 0) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            message: "success",
+            data: userdetails[0], 
+        });
+};

@@ -6,7 +6,8 @@ const upload = require("../middleware/upload")
 
 const fileupload = upload.fields([
     { name: 'form', maxCount: 1}, 
-    { name: 'bc', maxCount: 1}
+    { name: 'bc', maxCount: 1},
+    { name: 'tor', maxCount: 1}
 ])
 
 

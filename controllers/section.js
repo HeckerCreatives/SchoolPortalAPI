@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose")
 const Schoolyear = require("../models/Schoolyear")
 const Section = require("../models/Section")
 const Gradelevel = require("../models/gradelevel")
+const Studentuserdetails = require("../models/Studentuserdetails")
 
 
 exports.createsection = async (req, res) => {
@@ -324,3 +325,63 @@ exports.getSectionByGradeLevel = async (req, res) => {
 
     return res.status(200).json({ message: "success", data: finalData });
 };
+
+
+// #region STUDENTS
+
+exports.selectSection = async (req, res) => {
+    const { id } = req.user
+
+    const { sectionid } = req.body
+
+    if(!sectionid){
+        return res.status(400).json({ message: "failed", data: "Please select a section."})
+    }
+
+    const studentinfo = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(id)})
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching student user info in select section. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    if(!studentinfo){
+        return res.status(400).json({ message: "failed", data: "Student details not found." });
+    }
+
+    if(studentinfo.section){
+        return res.status(400).json({ message: "failed", data: "Student already has a section." });
+    }
+
+    const section = await Section.findOne({ _id: new mongoose.Types.ObjectId(sectionid)}).populate("students");
+
+    if (!section) {
+        return res.status(404).json({ message: "failed", data: "Section not found." });
+    }
+
+    const maleCount = await Studentuserdetails.countDocuments({
+        _id: { $in: section.students },
+        gender: "male",
+    });
+
+    const femaleCount = await Studentuserdetails.countDocuments({
+        _id: { $in: section.students },
+        gender: "female",
+    });
+
+    const studentGender = studentinfo.gender.toLowerCase();
+
+    if ((studentGender === "male" && maleCount >= 15) || (studentGender === "female" && femaleCount >= 15)) {
+        return res.status(400).json({ message: "failed", data: "Selected section is full for your gender." });
+    }
+
+    section.members.push(new mongoose.Types.ObjectId(id));
+    await section.save();
+
+    studentinfo.section = new mongoose.Types.ObjectId(sectionid);
+    await studentinfo.save();
+
+    return res.status(200).json({ message: "success" })
+}
+
+
+// #endregion

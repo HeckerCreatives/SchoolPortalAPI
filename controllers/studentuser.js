@@ -1,5 +1,6 @@
 const { default: mongoose } = require("mongoose")
 const Studentusers = require("../models/Studentusers")
+const Studentuserdetails = require("../models/Studentuserdetails")
 
 
 
@@ -18,4 +19,19 @@ exports.getStudentusernamepw = async (req, res) => {
 
     return res.status(200).json({ message: "success", data: { username: studentData.username, password: 'temp123'}})
 
+}
+
+
+exports.getstudentuserdetails = async (req, res) => {
+    const { id } = req.user
+
+    const userinfo = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(id)})
+    .populate("owner")
+    .then(data => data)
+    .catch(err => { 
+        console.log(`There's a problem encountered while fetching student user details of user: ${username}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."}) 
+    })
+
+    return res.status(200).json({ message: "success", data: userinfo })
 }

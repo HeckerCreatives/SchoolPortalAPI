@@ -4,7 +4,7 @@ const Ticketusers = require("../models/Ticketusers");
 const Entranceexam = require("../models/Entranceexam");
 
 exports.submitrequirement = async (req, res) => {
-    const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mcontact, mfirstname, mmaidename, ffirstname, flastname, fcontact, gfirstname, glastname, gcontact, religion, civilstatus  } = req.body
+    const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mcontact, mfirstname, mmaidenname, ffirstname, flastname, fcontact, gfirstname, glastname, gcontact, religion, civilstatus  } = req.body
 
     const files = req.files;
     if (
@@ -49,7 +49,7 @@ exports.submitrequirement = async (req, res) => {
         },
         mother: {
             firstname: mfirstname,
-            maidenname: mmaidename,
+            maidenname: mmaidenname,
             contact: mcontact,
         },
         father: {

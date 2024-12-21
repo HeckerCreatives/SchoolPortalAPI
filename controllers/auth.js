@@ -163,7 +163,7 @@ exports.authlogin = async(req, res) => {
         
                             await Studentusers.findByIdAndUpdate({_id: studentuser._id}, {$set: {webtoken: token}}, { new: true })
                             .then(async () => {
-                                const payload = { id: studentuser._id, username: studentuser.username, status: studentuser.status, token: token, auth: studentuser.auth }
+                                const payload = { id: studentuser._id, username: studentuser.username, status: studentuser.status, token: token, auth: "student" }
         
                                 let jwtoken = ""
 

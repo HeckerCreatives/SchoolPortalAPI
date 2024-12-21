@@ -55,6 +55,7 @@ exports.getstudentuserdetails = async (req, res) => {
             section: userinfo.section?.name || "N/A",
             level: userinfo.level.name,
             program: userinfo.program.name,
+            levelid: userinfo.level._id,
         },
         familyinfo: {
             mother: {

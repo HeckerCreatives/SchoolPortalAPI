@@ -139,7 +139,6 @@ exports.protectticket = async (req, res, next) => {
 }
 exports.protectstudent = async (req, res, next) => {
     const token = req.headers.cookie?.split('; ').find(row => row.startsWith('sessionToken='))?.split('=')[1]
-    console.log(token)
 
     if (!token){
         return res.status(401).json({ message: 'Unauthorized', data: "You are not authorized to view this page. Please login the right account to view the page." });
@@ -148,7 +147,6 @@ exports.protectstudent = async (req, res, next) => {
     try{
         const decodedToken = await verifyJWT(token);
 
-        console.log(decodedToken.auth)
         if (decodedToken.auth != "student"){
             return res.status(401).json({ message: 'Unauthorized', data: "You are not authorized to view this page. Please login the right account to view the page." });
         }

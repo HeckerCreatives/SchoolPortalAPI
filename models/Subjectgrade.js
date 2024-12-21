@@ -8,6 +8,10 @@ const SubjectGradeSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Subjects"
         },
+        teacher: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Staffusers"
+        },
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Studentusers"
@@ -17,7 +21,10 @@ const SubjectGradeSchema = new mongoose.Schema(
         },
         grade: {
             type: Number,
-        }
+        },
+        remarks: {
+            type: String,
+        },
     },
     {
         timestamps: true,

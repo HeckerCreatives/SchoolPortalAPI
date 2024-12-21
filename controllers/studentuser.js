@@ -41,6 +41,7 @@ exports.getstudentuserdetails = async (req, res) => {
 
     const finaldata = {
         id: userinfo.owner,
+        levelid: userinfo.level._id,
         basicinfo: {
             firstname: userinfo.firstname,
             middlename: userinfo.middlename,
@@ -55,7 +56,6 @@ exports.getstudentuserdetails = async (req, res) => {
             section: userinfo.section?.name || "N/A",
             level: userinfo.level.name,
             program: userinfo.program.name,
-            levelid: userinfo.level._id,
         },
         familyinfo: {
             mother: {

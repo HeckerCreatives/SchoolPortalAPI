@@ -374,7 +374,13 @@ exports.selectSection = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Selected section is full for your gender." });
     }
 
-    section.members.push(new mongoose.Types.ObjectId(id));
+    if(section.students.length >= 30){
+        return res.status(400).json({ message: "failed", data: "Selected section is full." });
+    }
+
+    if(section.students.length > 0){
+        section.members.push(new mongoose.Types.ObjectId(id));
+    }
     await section.save();
 
     studentinfo.section = new mongoose.Types.ObjectId(sectionid);

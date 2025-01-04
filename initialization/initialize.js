@@ -3,7 +3,8 @@ const { default: mongoose } = require("mongoose");
 const Ticketcounter = require("../models/Ticketcounter");
 const Studentusers = require("../models/Studentusers"); // Import the Studentusers model
 const Gradelevel = require("../models/gradelevel");
-const Program = require("../models/Program")
+const Program = require("../models/Program");
+const EnrollmentFee = require("../models/Enrollmentfee");
 
 exports.initialize = async () => {
 
@@ -107,8 +108,18 @@ exports.initialize = async () => {
       
             { level: "Grade 12", program: programMap["Senior High-School"] },
           ];
-          await Gradelevel.insertMany(gradeLevels);
-         console.log("Grade levels initialized!");        
+
+
+          const createdGradeLevels = await Gradelevel.insertMany(gradeLevels);
+          console.log("Grade levels initialized!");
+  
+          for (const grade of createdGradeLevels) {
+              await EnrollmentFee.create({
+                  gradelevel: grade._id, 
+                  program: grade.program, 
+              });
+          }
+        console.log("Enrollment fee data initialized!");
     }
 
     console.log("SERVER DATA INITIALIZED");

@@ -1,4 +1,4 @@
-const { createSchedule, getSchedulesByTeacher, getSchedulesBySection, editSchedule, deletschedule, getSchedulesTeacher, getStudentSchedule  } = require("../controllers/schedule")
+const { createSchedule, getSchedulesByTeacher, getSchedulesBySection, editSchedule, deletschedule, getSchedulesTeacher, getStudentSchedule, getsubjectsectionbyteacherid  } = require("../controllers/schedule")
 const { protectsuperadmin, protectteacheradviser, protectstudent } = require("../middleware/middleware")
 
 const router = require("express").Router()
@@ -18,6 +18,7 @@ router
 // #region TEACHER
 
 .get("/getteacherschedule", protectteacheradviser, getSchedulesTeacher)
+.get("/getsubjectsectionbyteacherid", protectteacheradviser, getsubjectsectionbyteacherid)
 
 // #endregion
 

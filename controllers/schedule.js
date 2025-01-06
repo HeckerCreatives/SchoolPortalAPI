@@ -4,6 +4,7 @@ const { default: mongoose } = require("mongoose");
 const Schedule = require("../models/Schedule");
 const Schoolyear = require("../models/Schoolyear");
 const Studentuserdetails = require("../models/Studentuserdetails");
+const Section = require("../models/Section");
 
 exports.createSchedule = async (req, res) => {
     const { teacher, subject, section, day, starttime, endtime } = req.body
@@ -78,6 +79,23 @@ exports.createSchedule = async (req, res) => {
             data: "No current school year found. Please set a current school year."
         });
     }
+
+    const isSubjectExisting = await Section.findOne({ _id: section})
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching subject for is Subject Existing. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    const subjectExists = data.subjects.includes(isSubjectExisting);
+
+    if (!subjectExists) {
+        data.subjects.push(subject);     
+        await isSubjectExisting.save();
+
+    }
+
+
 
     await Schedule.create({
         teacher: new mongoose.Types.ObjectId(teacher),
@@ -696,4 +714,58 @@ exports.getStudentSchedule = async (req, res) => {
     })
 
     return res.status(200).json({ message: "success", data: finaldata })
+}
+
+
+exports.getsubjectsectionbyteacherid = async (req, res) => {
+
+    const { id } = req.user
+
+    const data = await Schedule.aggregate([
+        {
+            $match: { teacher: new mongoose.Types.ObjectId(id) }
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "Subjectdetails"
+            }
+        },
+        {
+            $unwind: "$Subjectdetails" 
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails"
+            }
+        },
+        {
+            $unwind: "$Sectiondetails"
+        }
+    ]);
+
+    if(!data){
+        return res.status(400).json({ message: "failed", data: "No available data."})
+    }
+
+    const finaldata = []
+
+    data.forEach(temp => {
+        const { _id, Sectiondetails, Subjectdetails } = temp
+
+        finaldata.push({
+            Scheduleid: _id,
+            Subjectid: Subjectdetails._id,
+            Sectionid: Sectiondetails._id,
+            Subjectsection: `${Subjectdetails.name} - ${Sectiondetails.name}`
+        })
+    })
+
+
+    return res.status(200).json({ message: "success", data: finaldata})
 }

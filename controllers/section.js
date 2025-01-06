@@ -3,6 +3,8 @@ const Schoolyear = require("../models/Schoolyear")
 const Section = require("../models/Section")
 const Gradelevel = require("../models/gradelevel")
 const Studentuserdetails = require("../models/Studentuserdetails")
+const Schedule = require("../models/Schedule")
+const Subjectgrade = require("../models/Subjectgrade")
 
 
 exports.createsection = async (req, res) => {
@@ -381,13 +383,146 @@ exports.selectSection = async (req, res) => {
     if(section.students.length > 0){
         section.members.push(new mongoose.Types.ObjectId(id));
     }
+
+    
     await section.save();
 
     studentinfo.section = new mongoose.Types.ObjectId(sectionid);
     await studentinfo.save();
+
+    if (section.subjects && section.subjects.length > 0) {
+        const subjectGrades = section.subjects.map(subjectId => {
+            return ["1st", "2nd", "3rd", "4th"].map(quarter => ({
+                subject: subjectId,
+                student: new mongoose.Types.ObjectId(id),
+                quarter,
+            }));
+        });
+
+        // Flatten the subject grades array and insert into the database
+        const flattenedSubjectGrades = subjectGrades.flat();
+        await Subjectgrade.insertMany(flattenedSubjectGrades);
+    }
 
     return res.status(200).json({ message: "success" })
 }
 
 
 // #endregion
+
+
+exports.getstudentlistbysubjectsection = async (req, res) => {
+    const { subjectid, sectionid } = req.query
+
+    if (!subjectid || !sectionid) {
+        return res.status(400).json({ error: "Subject ID and Section ID are required." });
+    }
+
+    const data = await Schedule.aggregate([
+        {
+            $match: { 
+                section: new mongoose.Types.ObjectId(sectionid), 
+                subject: new mongoose.Types.ObjectId(subjectid)
+            }
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails"
+            }
+        },
+        {
+            $unwind: "$Sectiondetails" 
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "Sectiondetails.students",
+                foreignField: "owner",
+                as: "Studentuserdetails"
+            }
+        },
+        {
+            $unwind: "$Studentuserdetails"
+        }
+    ]);
+
+    console.log(data);
+
+
+
+    return res.status(200).json(data);
+}
+
+
+
+exports.sectionlistofteacher = async (req, res) => {
+
+    const { id, username } = req.user
+
+    const data = await Schedule.aggregate([
+        {
+            $match: { 
+                teacher: new mongoose.Types.ObjectId(id),
+            },
+        },
+        {
+            $lookup: {
+                from: "sections",
+                localField: "section",
+                foreignField: "_id",
+                as: "Sectiondetails",
+            },
+        },
+        {
+            $unwind: "$Sectiondetails",
+        },
+        {
+            $lookup: {
+                from: "gradelevels", 
+                localField: "Sectiondetails.gradelevel", 
+                foreignField: "_id", 
+                as: "gleveldetails",
+            },
+        },
+        {
+            $unwind: "$gleveldetails",
+        },
+        {
+            $project: {
+                _id: 0, 
+                sectionid: "$Sectiondetails._id",
+                sectionName: "$Sectiondetails.name", 
+                gradeLevelName: "$gleveldetails.level",
+            },
+        },
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching section list of teacher: ${username}. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+    
+    return res.status(200).json({ message: "success", data: data})
+
+}
+
+
+exports.studentlistbysectionid = async (req, res) => {
+    const { id } = req.user
+
+    const { sectionid } = req.query
+
+
+    const data = await Section.findOne({ _id: new mongoose.Types.ObjectId(sectionid)})
+    .populate("students")
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching student list by section id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success", data: data})
+}

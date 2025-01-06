@@ -214,3 +214,66 @@ return res.status(200).json({ message: "success", data: finaldata})
 }
 
 
+
+exports.getsubjectgradebystudentid = async (req, res) => {
+
+    const { id } = req.user
+
+    const { studentid } = req.query
+
+    const studentgrades = await Subjectgrade.aggregate([
+        {
+            $match: { student: new mongoose.Types.ObjectId(studentid) },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "student",
+                foreignField: "owner",
+                as: "studentdetails",
+            },
+        },
+        {
+            $unwind: "$studentdetails",
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "subjectdetails",
+            },
+        },
+        {
+            $unwind: "$subjectdetails",
+        },
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encoutered while fetching student grade. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+
+    const finaldata = []
+
+    studentgrades.forEach(grade => {
+        finaldata.push({
+            student: {
+                id: grade.studentdetails.owner,
+                name: `${grade.studentdetails.firstname} ${grade.studentdetails.lastname}`,
+                email: grade.studentdetails.email,
+            },
+            subject: {
+                id: grade.subjectdetails._id,
+                name: grade.subjectdetails.name,
+            },
+            grades: {
+                quarter: grade.quarter,
+                grade: grade.grade || [],
+                remarks: grade.remarks || "N/A",
+            }
+        })
+    })
+
+}

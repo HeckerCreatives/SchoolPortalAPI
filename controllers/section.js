@@ -380,15 +380,20 @@ exports.selectSection = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Selected section is full." });
     }
 
-    if(section.students.length > 0){
-        section.members.push(new mongoose.Types.ObjectId(id));
-    }
+    section.students.push(new mongoose.Types.ObjectId(id));
+
 
     
-    await section.save();
+    await section.save().catch(err =>{
+        console.log(`There's a problem encountered while selecting section. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    })
 
     studentinfo.section = new mongoose.Types.ObjectId(sectionid);
-    await studentinfo.save();
+    await studentinfo.save().catch(err =>{
+        console.log(`There's a problem encountered while selecting section. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    })
 
     if (section.subjects && section.subjects.length > 0) {
         const subjectGrades = section.subjects.map(subjectId => {
@@ -401,7 +406,13 @@ exports.selectSection = async (req, res) => {
 
         // Flatten the subject grades array and insert into the database
         const flattenedSubjectGrades = subjectGrades.flat();
-        await Subjectgrade.insertMany(flattenedSubjectGrades);
+
+        console.log(flattenedSubjectGrades)
+        await Subjectgrade.insertMany(flattenedSubjectGrades)
+        .catch(err =>{
+            console.log(`There's a problem encountered while initializing subject grade in select section. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+        })
     }
 
     return res.status(200).json({ message: "success" })
@@ -516,13 +527,54 @@ exports.studentlistbysectionid = async (req, res) => {
     const { sectionid } = req.query
 
 
-    const data = await Section.findOne({ _id: new mongoose.Types.ObjectId(sectionid)})
-    .populate("students")
+    const newdata = await Section.aggregate([
+        {
+            $match: { _id: new mongoose.Types.ObjectId(sectionid)}
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "students",
+                foreignField: "owner",
+                as: "SUDetails"
+            }
+        },
+        {
+            $unwind: "$SUDetails"
+        },
+    ])
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem encountered while fetching student list by section id. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    });
+
+    if(newdata.length > 0){
+        return res.status(400).json({ message: "failed", data: "Section data not found."})
+    }
+
+    const finaldata = {
+        students: [],
+        section: [],
+    }
+
+    newdata.forEach(temp => {
+        finaldata.section.push({
+            id: temp._id,
+            name: temp.name,
+            status: temp.status,
+        })
+
+        if(temp.SUDetails.length > 0){
+            temp.SUDetails.forEach(student => {
+                finaldata.students.push({
+                    fullname: `${student.firstname} ${student.lastname}`,
+                    gender: student.gender,
+                    email: student.email
+                })
+            })
+        }
     })
 
-    return res.status(200).json({ message: "success", data: data})
+    return res.status(200).json({ message: "success", data: finaldata})
 }

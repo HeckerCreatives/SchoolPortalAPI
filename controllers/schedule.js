@@ -87,10 +87,12 @@ exports.createSchedule = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    const subjectExists = data.subjects.includes(isSubjectExisting);
+    const subjectExists = isSubjectExisting.subjects.includes(isSubjectExisting);
 
+    console.log(subjectExists)
     if (!subjectExists) {
-        data.subjects.push(subject);     
+        console.log("hi passed here")
+        isSubjectExisting.subjects.push(subject);     
         await isSubjectExisting.save();
 
     }

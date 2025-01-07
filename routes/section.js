@@ -1,4 +1,4 @@
-const { createsection, getAllSections, editSection, deleteSection, getSectionByGradeLevel, selectSection, getstudentlistbysubjectsection, sectionlistofteacher, studentlistbysectionid } = require("../controllers/section")
+const { createsection, getAllSections, editSection, deleteSection, getSectionByGradeLevel, selectSection, getstudentlistbysubjectsection, sectionlistofteacher, studentlistbysectionid, getstudentsubjects } = require("../controllers/section")
 const { protectsuperadmin, protectstudent, protectteacheradviser, protectstaffusers } = require("../middleware/middleware")
 
 const router = require("express").Router()
@@ -12,6 +12,7 @@ router
 .get("/getsectionbygradelevel", protectsuperadmin, getSectionByGradeLevel)
 .post("/editsection", protectsuperadmin, editSection)
 .get("/deletesection", protectsuperadmin, deleteSection)
+.get("/getstudentsubjectsa", protectsuperadmin, getstudentsubjects)
 
 //#endregion
 
@@ -29,6 +30,8 @@ router
 
 .get("/sectionlistofteacher", protectteacheradviser, sectionlistofteacher)
 .get("/getstudentlistbysubjectsection",protectteacheradviser, getstudentlistbysubjectsection)
+.get("/getstudentsubjectta", protectteacheradviser, getstudentsubjects)
+
 
 // #endregion
 

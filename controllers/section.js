@@ -540,7 +540,10 @@ exports.studentlistbysectionid = async (req, res) => {
             }
         },
         {
-            $unwind: "$SUDetails"
+            $unwind: {
+                path: "$SUDetails",
+                preserveNullAndEmptyArrays: true,
+            },        
         },
     ])
     .then(data => data)
@@ -549,7 +552,7 @@ exports.studentlistbysectionid = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
     });
 
-    if(newdata.length > 0){
+    if(!newdata.length > 0){
         return res.status(400).json({ message: "failed", data: "Section data not found."})
     }
 
@@ -565,7 +568,7 @@ exports.studentlistbysectionid = async (req, res) => {
             status: temp.status,
         })
 
-        if(temp.SUDetails.length > 0){
+        if(!temp.SUDetails.length > 1){
             temp.SUDetails.forEach(student => {
                 finaldata.students.push({
                     fullname: `${student.firstname} ${student.lastname}`,
@@ -573,6 +576,14 @@ exports.studentlistbysectionid = async (req, res) => {
                     email: student.email
                 })
             })
+        } else if (temp.SUDetails) {
+            finaldata.students.push({
+                fullname: `${temp.SUDetails.firstname} ${temp.SUDetails.lastname}`,
+                gender: temp.SUDetails.gender,
+                email: temp.SUDetails.email
+            })
+        } else {
+            return
         }
     })
 

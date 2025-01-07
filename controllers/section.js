@@ -524,10 +524,26 @@ exports.sectionlistofteacher = async (req, res) => {
 exports.studentlistbysectionid = async (req, res) => {
     const { id } = req.user
 
-    const { sectionid } = req.query
+    const { page, limit, search, sectionid } = req.query
 
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10,
+    }
 
-    const newdata = await Section.aggregate([
+    let searchMatchStage = {};
+    
+    if (search) {
+        searchMatchStage = {
+            $or: [
+                { "SUDetails.email": { $regex: search, $options: 'i' } },
+                { "SUDetails.lastname": { $regex: search, $options: 'i' } },
+                { "SUDetails.firstname": { $regex: search, $options: 'i' } },
+            ],
+        };
+    }
+
+    const aggregationpipeline = [
         {
             $match: { _id: new mongoose.Types.ObjectId(sectionid)}
         },
@@ -539,16 +555,32 @@ exports.studentlistbysectionid = async (req, res) => {
                 as: "SUDetails"
             }
         },
+        ...(search ? [{ $match: searchMatchStage }] : []),
         {
             $unwind: {
                 path: "$SUDetails",
                 preserveNullAndEmptyArrays: true,
             },        
         },
-    ])
+        {
+            $skip: pageOptions.page * pageOptions.limit,
+        },
+        {
+            $limit: pageOptions.limit,
+        },
+    ]
+
+    const newdata = await Section.aggregate(aggregationpipeline)
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem encountered while fetching student list by section id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    });
+
+    const totalDocuments = await Section.countDocuments(aggregationpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while counting student list by section id. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
     });
 
@@ -556,7 +588,10 @@ exports.studentlistbysectionid = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Section data not found."})
     }
 
+    const totalpages = Math.ceil(totalDocuments / pageOptions.limit)
+
     const finaldata = {
+        totalpages, 
         students: [],
         section: [],
     }

@@ -3,17 +3,18 @@ const Subjectgrade = require("../models/Subjectgrade")
 const Schedule = require("../models/Schedule")
 const Studentuserdetails = require("../models/Studentuserdetails")
 const Schoolyear = require("../models/Schoolyear")
+const Staffusers = require("../models/Staffusers")
+
 
 
 exports.createsubjectgrade = async (req, res) => {
+
     const { id } = req.user
 
-    const { student, subject, quarter, grademarks, remarks } = req.body
+    const { subject, student, quarter, grade, remarks } = req.body
 
-    if(!student || !subject || !quarter || !grademarks) {
-        return res.status(400).json({
-            message: "failed", data: "All fields are required"
-        })
+    if(!subject || !student || !quarter || !grade || !remarks){
+        return res.status(400).json({ message: "failed", data: "Incomplete input data."})
     }
 
     const getstudentsection = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(student) })
@@ -33,37 +34,14 @@ exports.createsubjectgrade = async (req, res) => {
         console.log(`There's a problem encountered while checking subject schedule. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
+    
+    const getsuperadmin = await Staffusers.findOne({ _id: new mongoose.Types.ObjectId(id)})
 
-    if (!checksubjectbyschedule) {
+    if (!checksubjectbyschedule && getsuperadmin.auth !== "superadmin") {
         return res.status(403).json({
             message: "failed",
-            data: "Teacher is not authorized to grade this student for this subject",
+            data: "Teacher is not authorized to grade this student for this subject.",
         });
-    }
-
-    await Subjectgrade.create({
-        teacher: new mongoose.Types.ObjectId(id),
-        student,
-        subject,
-        quarter,
-        grade: grademarks,
-        remarks
-    })
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while creating subject grade. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-    })
-
-    return res.status(200).json({ message: "success" })
-}
-
-exports.createsubjectgradenew = async (req, res) => {
-
-    const { subject, student, quarter, grade, remarks } = req.body
-
-    if(!subject || !student || !quarter || !grade || !remarks){
-        return res.status(400).json({ message: "failed", data: "Incomplete input data."})
     }
 
     const findCurrentSchoolYear = await Schoolyear.findOne({ currentstatus: "current" })
@@ -85,8 +63,11 @@ exports.createsubjectgradenew = async (req, res) => {
     })
     .then(data => data)
     .catch(err => {
-        
+        console.log(`There's a problem encountered while creating subject grade. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
+
+    return res.status(200).json({ message: "success" })
 }
 
 exports.editsubjectgrade = async (req, res) => {

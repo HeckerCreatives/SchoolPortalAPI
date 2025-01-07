@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose")
 const Subjectgrade = require("../models/Subjectgrade")
 const Schedule = require("../models/Schedule")
 const Studentuserdetails = require("../models/Studentuserdetails")
+const Schoolyear = require("../models/Schoolyear")
 
 
 exports.createsubjectgrade = async (req, res) => {
@@ -55,6 +56,37 @@ exports.createsubjectgrade = async (req, res) => {
     })
 
     return res.status(200).json({ message: "success" })
+}
+
+exports.createsubjectgradenew = async (req, res) => {
+
+    const { subject, student, quarter, grade, remarks } = req.body
+
+    if(!subject || !student || !quarter || !grade || !remarks){
+        return res.status(400).json({ message: "failed", data: "Incomplete input data."})
+    }
+
+    const findCurrentSchoolYear = await Schoolyear.findOne({ currentstatus: "current" })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while searching currentschool year in create subject grade. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    // check the current quarter soon to add
+
+    await Subjectgrade.create({
+        subject: new mongoose.Types.ObjectId(subject),
+        student: new mongoose.Types.ObjectId(student),
+        schoolyear: findCurrentSchoolYear._id,
+        quarter: quarter,
+        grade: grade,
+        remarks: remarks,
+    })
+    .then(data => data)
+    .catch(err => {
+        
+    })
 }
 
 exports.editsubjectgrade = async (req, res) => {

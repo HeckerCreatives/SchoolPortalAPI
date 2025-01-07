@@ -16,17 +16,15 @@ const SubjectGradeSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Schoolyear"
         },
-        grades: [{
-            quarter: {
-                type: String
-            },
-            grade: {
-                type: Number,
-            },
-            remarks: {
-                type: String,
-            },
-        }]
+        quarter: {
+            type: String
+        },
+        grade: {
+            type: Number,
+        },
+        remarks: {
+            type: String,
+        },
     },
     {
         timestamps: true,

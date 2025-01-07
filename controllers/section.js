@@ -614,7 +614,7 @@ exports.studentlistbysectionid = async (req, res) => {
             })
         } else if (temp.SUDetails) {
             finaldata.students.push({
-                id: temp.SUDetails._id,
+                id: temp.SUDetails.owner,
                 fullname: `${temp.SUDetails.firstname} ${temp.SUDetails.lastname}`,
                 gender: temp.SUDetails.gender,
                 email: temp.SUDetails.email

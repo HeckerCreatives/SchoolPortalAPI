@@ -571,6 +571,7 @@ exports.studentlistbysectionid = async (req, res) => {
         if(!temp.SUDetails.length > 1){
             temp.SUDetails.forEach(student => {
                 finaldata.students.push({
+                    id: temp.SUDetails._id,
                     fullname: `${student.firstname} ${student.lastname}`,
                     gender: student.gender,
                     email: student.email
@@ -578,6 +579,7 @@ exports.studentlistbysectionid = async (req, res) => {
             })
         } else if (temp.SUDetails) {
             finaldata.students.push({
+                id: temp.SUDetails._id,
                 fullname: `${temp.SUDetails.firstname} ${temp.SUDetails.lastname}`,
                 gender: temp.SUDetails.gender,
                 email: temp.SUDetails.email

@@ -51,23 +51,66 @@ exports.createsubjectgrade = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    // check the current quarter soon to add
-
-    await Subjectgrade.create({
-        subject: new mongoose.Types.ObjectId(subject),
-        student: new mongoose.Types.ObjectId(student),
-        schoolyear: findCurrentSchoolYear._id,
-        quarter: quarter,
-        grade: grade,
-        remarks: remarks,
-    })
+    const studentgrades = await Subjectgrade.aggregate([
+        {
+            $match: { student: new mongoose.Types.ObjectId(student) },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "student",
+                foreignField: "owner",
+                as: "studentdetails",
+            },
+        },
+        {
+            $unwind: "$studentdetails",
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subject",
+                foreignField: "_id",
+                as: "subjectdetails",
+            },
+        },
+        {
+            $unwind: "$subjectdetails",
+        },
+    ])
     .then(data => data)
     .catch(err => {
-        console.log(`There's a problem encountered while creating subject grade. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+        console.log(`There's a problem encoutered while fetching student grade. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    return res.status(200).json({ message: "success" })
+
+    const finSubject = studentgrades.filter((item) => item.subject == subject)
+
+    const hasQuarter = finSubject.some((grade) => grade.quarter === quarter);
+
+    if (hasQuarter == true) {
+        return res.status(400).json({ message: 'bad-request', data: `Subject already have a grade` })
+
+    } else {
+        await Subjectgrade.create({
+            subject: new mongoose.Types.ObjectId(subject),
+            student: new mongoose.Types.ObjectId(student),
+            schoolyear: findCurrentSchoolYear._id,
+            quarter: quarter,
+            grade: grade,
+            remarks: remarks,
+        })
+        .then(data => data)
+        .catch(err => {
+            console.log(`There's a problem encountered while creating subject grade. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+        })
+    
+        return res.status(200).json({ message: "success" })
+    }
+
+   
 }
 
 exports.editsubjectgrade = async (req, res) => {

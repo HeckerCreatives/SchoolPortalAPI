@@ -103,7 +103,7 @@ exports.deletesubjectgrade = async (req, res) => {
 
     const { id } = req.user
 
-    const { subjectgrade} = req.body
+    const { subjectgrade } = req.body
     
     if(!subjectgrade) {
         return res.status(400).json({

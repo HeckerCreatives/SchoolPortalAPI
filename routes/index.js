@@ -10,6 +10,7 @@ const routers = app => {
     app.use("/event", require("./event"))
     app.use("/examschedule", require("./examschedule"))
     app.use("/gradelevel", require("./gradelevel"))
+    app.use("/gradingperiod", require("./gradingperiod"))
     app.use("/requirement", require("./requirements"))
     app.use("/schoolyear", require("./schoolyear"))
     app.use("/news", require("./news"))

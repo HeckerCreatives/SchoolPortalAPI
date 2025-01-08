@@ -5,6 +5,7 @@ const Studentusers = require("../models/Studentusers"); // Import the Studentuse
 const Gradelevel = require("../models/gradelevel");
 const Program = require("../models/Program");
 const EnrollmentFee = require("../models/Enrollmentfee");
+const GradingPeriod = require("../models/Gradingperiod");
 
 exports.initialize = async () => {
 
@@ -120,6 +121,23 @@ exports.initialize = async () => {
               });
           }
         console.log("Enrollment fee data initialized!");
+    }
+
+
+    const isGradingPeriod = await GradingPeriod.find()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while searching for existing Grading Period in initialization. Error: ${err}`)
+        return;
+    })
+
+
+    if(isGradingPeriod.length <= 0){
+        await GradingPeriod.create({
+            quarter: "Q1"
+        })
+
+        console.log("Grading Period initialized")
     }
 
     console.log("SERVER DATA INITIALIZED");

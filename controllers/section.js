@@ -395,26 +395,6 @@ exports.selectSection = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
     })
 
-    if (section.subjects && section.subjects.length > 0) {
-        const subjectGrades = section.subjects.map(subjectId => {
-            return ["1st", "2nd", "3rd", "4th"].map(quarter => ({
-                subject: subjectId,
-                student: new mongoose.Types.ObjectId(id),
-                quarter,
-            }));
-        });
-
-        // Flatten the subject grades array and insert into the database
-        const flattenedSubjectGrades = subjectGrades.flat();
-
-        console.log(flattenedSubjectGrades)
-        await Subjectgrade.insertMany(flattenedSubjectGrades)
-        .catch(err =>{
-            console.log(`There's a problem encountered while initializing subject grade in select section. Error: ${err}`)
-            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
-        })
-    }
-
     return res.status(200).json({ message: "success" })
 }
 

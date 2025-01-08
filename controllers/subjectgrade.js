@@ -8,10 +8,13 @@ const Staffusers = require("../models/Staffusers")
 
 exports.createsubjectgrade = async (req, res) => {
     const { id } = req.user; // Teacher or admin ID
-    const { grades } = req.body; // Array of grades
+    const { newgrades } = req.body; // Input data
 
-    if (!grades || !Array.isArray(grades) || grades.length === 0) {
-        return res.status(400).json({ message: "failed", data: "Grades data must be a non-empty array." });
+    // Normalize grades into an array
+    const grades = Array.isArray(newgrades) ? newgrades : [newgrades];
+
+    if (!grades || grades.length === 0) {
+        return res.status(400).json({ message: "failed", data: "Grades data must be provided." });
     }
 
     const findCurrentSchoolYear = await Schoolyear.findOne({ currentstatus: "current" })
@@ -48,7 +51,7 @@ exports.createsubjectgrade = async (req, res) => {
         if (checkIsGraded) {
             return res.status(400).json({ message: "failed", data: "Duplicate quarter grade not allowed" });
         }
-        // Fetch student section
+
         const getstudentsection = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(student) })
             .catch((err) => {
                 console.log(`Error fetching student section: ${err}`);
@@ -62,7 +65,6 @@ exports.createsubjectgrade = async (req, res) => {
             });
         }
 
-        // Check subject by schedule
         const checksubjectbyschedule = await Schedule.findOne({
             teacher: new mongoose.Types.ObjectId(id),
             subject: new mongoose.Types.ObjectId(subject),
@@ -81,7 +83,6 @@ exports.createsubjectgrade = async (req, res) => {
             });
         }
 
-        // Add valid grade entry to the bulk data
         subjectGrades.push({
             subject: new mongoose.Types.ObjectId(subject),
             student: new mongoose.Types.ObjectId(student),
@@ -92,7 +93,6 @@ exports.createsubjectgrade = async (req, res) => {
         });
     }
 
-    // Bulk insert grades
     await Subjectgrade.insertMany(subjectGrades)
         .then((data) => {
             return res.status(200).json({ message: "success", data });
@@ -105,7 +105,6 @@ exports.createsubjectgrade = async (req, res) => {
             });
         });
 };
-
 
 exports.editsubjectgrade = async (req, res) => {
 

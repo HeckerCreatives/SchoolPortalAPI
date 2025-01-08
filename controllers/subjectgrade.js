@@ -75,6 +75,8 @@ exports.editsubjectgrade = async (req, res) => {
     const { id } = req.user
 
     const { subjectgrade, remarks, grade } = req.body
+
+    
     if(!subjectgrade) {
         return res.status(400).json({
             message: "failed", data: "Subject grade ID is required"
@@ -96,6 +98,30 @@ exports.editsubjectgrade = async (req, res) => {
 
     return res.status(200).json({ message: "success" })
 }
+
+exports.deletesubjectgrade = async (req, res) => {
+
+    const { id } = req.user
+
+    const { subjectgrade} = req.body
+    
+    if(!subjectgrade) {
+        return res.status(400).json({
+            message: "failed", data: "Subject grade ID is required"
+        })
+    }
+
+
+    await Subjectgrade.findOneAndDelete({ _id: new mongoose.Types.ObjectId(subjectgrade) })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while updating subject grade. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}
+
 
 exports.getstudentsubjectgrade = async (req, res) => {
         const { student } = req.query

@@ -39,6 +39,15 @@ exports.createsubjectgrade = async (req, res) => {
             });
         }
 
+        const checkIsGraded = await Subjectgrade.findOne({
+            subject: new mongoose.Types.ObjectId(subject),
+            student: new mongoose.Types.ObjectId(student),
+            quarter: { $regex: `^${quarter}$`, $options: "i" }
+        });
+        
+        if (checkIsGraded) {
+            return res.status(400).json({ message: "failed", data: "Duplicate quarter grade not allowed" });
+        }
         // Fetch student section
         const getstudentsection = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(student) })
             .catch((err) => {

@@ -760,24 +760,15 @@ exports.getstudentsubjects = async (req, res) => {
                         in: {
                             subject: "$$subject",
                             grades: {
-                                $let: {
-                                    vars: {
-                                        sortedGrades: {
-                                            $sortArray: {
-                                                input: {
-                                                    $filter: {
-                                                        input: "$studentGrades",
-                                                        as: "grade",
-                                                        cond: { $eq: ["$$grade.subject", "$$subject._id"] },
-                                                    },
-                                                },
-                                                sortBy: {
-                                                    $indexOfArray: [["Q1", "Q2", "Q3", "Q4"], "$$this.quarter"],
-                                                },
-                                            },
+                                $sortArray: {
+                                    input: {
+                                        $filter: {
+                                            input: "$studentGrades",
+                                            as: "grade",
+                                            cond: { $eq: ["$$grade.subject", "$$subject._id"] },
                                         },
                                     },
-                                    in: "$$sortedGrades",
+                                    sortBy: { quarter: 1 }, // Ascending sort by quarter
                                 },
                             },
                         },
@@ -785,8 +776,7 @@ exports.getstudentsubjects = async (req, res) => {
                 },
                 studentDetails: { $arrayElemAt: ["$studentDetails", 0] },
             },
-        }
-        
+        }        
     ])
     .then(data => data)
     .catch(err => {

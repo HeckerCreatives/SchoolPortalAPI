@@ -5,6 +5,7 @@ const Gradelevel = require("../models/gradelevel")
 const Studentuserdetails = require("../models/Studentuserdetails")
 const Schedule = require("../models/Schedule")
 const Subjectgrade = require("../models/Subjectgrade")
+const GradingPeriod = require("../models/Gradingperiod")
 
 
 exports.createsection = async (req, res) => {
@@ -773,6 +774,14 @@ exports.getstudentsubjects = async (req, res) => {
         grade: [],
     }
 
+    const { quarter } = await GradingPeriod.findOne()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching grading period in get student subjects. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+
 
     subjectlist.forEach(temp => {
 
@@ -780,7 +789,8 @@ exports.getstudentsubjects = async (req, res) => {
             studentname: `${temp.studentDetails.firstname} ${temp.studentDetails.lastname}`,
             lvlsection: `${temp.gleveldetails[0].level} - ${temp.sectionName}`,
             adviser: `${temp.advdetails[0].firstname} ${temp.advdetails[0].lastname}`,
-            schoolyear: `${temp.sydetails[0].startyear} - ${temp.sydetails[0].endyear}`
+            schoolyear: `${temp.sydetails[0].startyear} - ${temp.sydetails[0].endyear}`,
+            quarter: quarter
         })
 
         temp.studentGrades.forEach(data => {

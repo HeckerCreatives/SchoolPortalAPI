@@ -5,7 +5,7 @@ const router = require("express").Router()
 
 router
  .get("/getstudentsubjectgrade", protectteacheradviser, getstudentsubjectgrade)
- .post("/createsubjectgrade", protectteacheradviser, createsubjectgrade)
+ .post("/createsubjectgrade", protectsuperadmin, createsubjectgrade)
  .get("/getsubjectgradebystudentidta", protectteacheradviser, getsubjectgradebystudentid)
 
  .get("/getsubjectgradestudent", protectstudent, getsubjectgradestudent)

@@ -800,6 +800,7 @@ exports.getstudentsubjects = async (req, res) => {
 
         temp.studentGrades.forEach(data => {
             finaldata.grade.push({
+                id: data.subject._id,
                 subject: data.subject.name,
                 grades: data.grades
             })

@@ -159,26 +159,6 @@ exports.deletesubjectgrade = async (req, res) => {
     return res.status(200).json({ message: "success" })
 }
 
-
-exports.deletesubjectgrade = async (req, res) => {
-    const { id } = req.user
-
-    const { sgid } = req.query
-
-    if(!sgid){
-        return res.status(400).json({ message: "failed", data: "Please select a subject grade to delete."})
-    }
-
-    await Subjectgrade.findOneAndDelete({ _id: new mongoose.Types.ObjectId(sgid)})
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while deleting subject grade. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
-    })
-
-    return res.status(200).json({ message: "success" })
-}
-
 exports.getstudentsubjectgrade = async (req, res) => {
         const { student } = req.query
 

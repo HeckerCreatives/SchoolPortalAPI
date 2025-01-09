@@ -17,6 +17,7 @@ router
  //teacher
  .get("/getsubjectteacher", protectteacheradviser, getteachersubjects)
  .get("/getsubjectsectionteacher", protectteacheradviser, getteachersubjectsection)
+ .post("/createsubjectgradeteacher", protectteacheradviser, createsubjectgrade)
 
 
 

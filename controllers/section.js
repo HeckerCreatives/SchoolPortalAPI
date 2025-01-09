@@ -526,7 +526,121 @@ exports.studentlistbysectionid = async (req, res) => {
 
     const aggregationpipeline = [
         {
-            $match: { _id: new mongoose.Types.ObjectId(sectionid)}
+            $match: { 
+                _id: new mongoose.Types.ObjectId(sectionid),
+               
+
+            },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "students",
+                foreignField: "owner",
+                as: "SUDetails"
+            }
+        },
+        ...(search ? [{ $match: searchMatchStage }] : []),
+        {
+            $unwind: {
+                path: "$SUDetails",
+                preserveNullAndEmptyArrays: true,
+            },        
+        },
+        {
+            $skip: pageOptions.page * pageOptions.limit,
+        },
+        {
+            $limit: pageOptions.limit,
+        },
+    ]
+
+    const newdata = await Section.aggregate(aggregationpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching student list by section id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    });
+
+    const totalDocuments = await Section.countDocuments(aggregationpipeline)
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while counting student list by section id. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details"})
+    });
+
+    if(!newdata.length > 0){
+        return res.status(400).json({ message: "failed", data: "Section data not found."})
+    }
+
+    const totalpages = Math.ceil(totalDocuments / pageOptions.limit)
+
+    const finaldata = {
+        totalpages, 
+        students: [],
+        section: [],
+    }
+
+    newdata.forEach(temp => {
+        finaldata.section.push({
+            id: temp._id,
+            name: temp.name,
+            status: temp.status,
+        })
+
+        if(!temp.SUDetails.length > 1){
+            temp.SUDetails.forEach(student => {
+                finaldata.students.push({
+                    id: temp.SUDetails._id,
+                    fullname: `${student.firstname} ${student.lastname}`,
+                    gender: student.gender,
+                    email: student.email
+                })
+            })
+        } else if (temp.SUDetails) {
+            finaldata.students.push({
+                id: temp.SUDetails.owner,
+                fullname: `${temp.SUDetails.firstname} ${temp.SUDetails.lastname}`,
+                gender: temp.SUDetails.gender,
+                email: temp.SUDetails.email
+            })
+        } else {
+            return
+        }
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata})
+}
+
+exports.studentlistbysectionidteacher = async (req, res) => {
+    const { id } = req.user
+
+    const { page, limit, search, sectionid, subjectid } = req.query
+
+    const pageOptions = {
+        page: parseInt(page) || 0,
+        limit: parseInt(limit) || 10,
+    }
+
+    let searchMatchStage = {};
+    
+    if (search) {
+        searchMatchStage = {
+            $or: [
+                { "SUDetails.email": { $regex: search, $options: 'i' } },
+                { "SUDetails.lastname": { $regex: search, $options: 'i' } },
+                { "SUDetails.firstname": { $regex: search, $options: 'i' } },
+            ],
+        };
+    }
+
+    const aggregationpipeline = [
+        {
+            $match: { 
+                _id: new mongoose.Types.ObjectId(sectionid),
+                subjects: { $in: [new mongoose.Types.ObjectId(subjectid)] }
+
+            },
         },
         {
             $lookup: {
@@ -807,3 +921,213 @@ exports.getstudentsubjects = async (req, res) => {
 
     
 }
+
+exports.getstudentsubjectsteacher = async (req, res) => {
+ 
+    const { studentid, subjectid } = req.query
+
+    if(!studentid){
+        return res.status(400).json({ message: "failed", data: "Please select a student."})
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(studentid)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Student ID format." });
+    }
+
+    const subjectlist = await Section.aggregate([
+        {
+            $match: { 
+                students: new mongoose.Types.ObjectId(studentid),
+                subjects: {
+                    $filter: {
+                        input: "$subjects",
+                        as: "subject",
+                        cond: { $eq: ["$$subject._id", new mongoose.Types.ObjectId(subjectid)] }
+                    }
+                }
+
+            }
+        },
+        {
+            $lookup: {
+                from: "subjects", 
+                localField: "subjects",
+                foreignField: "_id",
+                as: "subjectDetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "schoolyears",
+                localField: "schoolyear",
+                foreignField: "_id",
+                as: "sydetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "gradelevels",
+                localField: "gradelevel",
+                foreignField: "_id",
+                as: "gleveldetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "advisories",
+                localField: "_id",
+                foreignField: "section",
+                as: "adviser"
+            }
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "adviser.teacher",
+                foreignField: "owner",
+                as: "advdetails"
+            }
+        },
+        {
+            $lookup: {
+                from: "subjectgrades",
+                let: { 
+                    sectionSubjects: "$subjects", 
+                    studentId: new mongoose.Types.ObjectId(studentid) 
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $in: ["$subject", "$$sectionSubjects"] }, // Match section's subjects
+                                    { $eq: ["$student", "$$studentId"] }      // Match the specific student
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            subject: 1,
+                            quarter: 1,
+                            grade: 1,
+                            remarks: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+                        },
+                    },
+                ],
+                as: "studentGrades",
+            },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails", 
+                let: { studentId: new mongoose.Types.ObjectId(studentid) },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $eq: ["$owner", "$$studentId"], 
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            firstname: 1,
+                            lastname: 1,
+                            gender: 1,
+                            email: 1,
+                            contact: 1,
+                            address: 1,
+                            profilepicture: 1,
+                        },
+                    },
+                ],
+                as: "studentDetails",
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                sectionName: "$name",
+                advdetails: 1,
+                sydetails: 1,
+                gleveldetails: 1,
+                studentGrades: {
+                    $map: {
+                        input: "$subjectDetails",
+                        as: "subject",
+                        in: {
+                            subject: "$$subject",
+                            grades: {
+                                $sortArray: {
+                                    input: {
+                                        $filter: {
+                                            input: "$studentGrades",
+                                            as: "grade",
+                                            cond: { $eq: ["$$grade.subject", "$$subject._id"] },
+                                        },
+                                    },
+                                    sortBy: { quarter: 1 }, // Ascending sort by quarter
+                                },
+                            },
+                        },
+                    },
+                },
+                studentDetails: { $arrayElemAt: ["$studentDetails", 0] },
+            },
+        }        
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching student's subjects. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! please contact support for more details."})
+    })
+    
+
+    if (!subjectlist || subjectlist.length === 0) {
+        return res.status(400).json({ message: "failed", data: "No sections found for the given student." });
+    }
+
+    const finaldata = {
+        details: [],
+        grade: [],
+    }
+
+    const { quarter } = await GradingPeriod.findOne()
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching grading period in get student subjects. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+
+
+    subjectlist.forEach(temp => {
+
+        finaldata.details.push({
+            studentname: `${temp.studentDetails.firstname} ${temp.studentDetails.lastname}`,
+            lvlsection: `${temp.gleveldetails[0].level} - ${temp.sectionName}`,
+            adviser: `${temp.advdetails[0].firstname} ${temp.advdetails[0].lastname}`,
+            schoolyear: `${temp.sydetails[0].startyear} - ${temp.sydetails[0].endyear}`,
+            quarter: quarter
+        })
+
+        temp.studentGrades.forEach(data => {
+            finaldata.grade.push({
+                id: data.subject._id,
+                subject: data.subject.name,
+                grades: data.grades
+            })
+        })
+    })
+
+
+    return res.status(200).json({ message: "success", data: finaldata})
+
+    
+}
+
+

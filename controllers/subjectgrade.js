@@ -5,6 +5,10 @@ const Studentuserdetails = require("../models/Studentuserdetails")
 const Schoolyear = require("../models/Schoolyear")
 const Staffusers = require("../models/Staffusers")
 const GradingPeriod = require("../models/Gradingperiod")
+const Section = require("../models/Section")
+const Subject = require("../models/Subject")
+
+
 
 
 exports.createsubjectgrade = async (req, res) => {
@@ -484,4 +488,52 @@ exports.getsubjectgradebystudentid = async (req, res) => {
         })
     })
 
+}
+
+//get teacher subjects
+exports.getteachersubjects = async (req, res) => {
+    const { id } = req.user
+    const { student } = req.query
+
+    const schedules = await Schedule.find({ teacher: new mongoose.Types.ObjectId(id) })
+
+    const subjectlist = [...new Set(schedules.map(schedule => schedule.subject.toString()))];
+
+    const subjectdata = await Promise.all(
+        subjectlist.map(async (subjectId) => {
+            const subject = await Subject.findOne({ _id: new mongoose.Types.ObjectId(subjectId) });
+            return {
+                id: subject._id,
+                name: subject.name
+            };
+        })
+    );
+
+
+    return res.status(200).json({ message: "success", data: subjectdata})
+}
+
+exports.getteachersubjectsection = async (req, res) => {
+    const { id } = req.user
+
+    const { subjectid } = req.query
+
+    const schedules = await Schedule.find({ teacher: new mongoose.Types.ObjectId(id), subject: new mongoose.Types.ObjectId(subjectid)})
+
+    console.log(schedules)
+
+    const subjectlist = [...new Set(schedules.map(schedule => schedule.section.toString()))];
+
+    const subjectdata = await Promise.all(
+        subjectlist.map(async (sectionid) => {
+            const subject = await Section.findOne({ _id: new mongoose.Types.ObjectId(sectionid)  });
+            return {
+                id: subject._id,
+                name: subject.name
+            };
+        })
+    );
+
+
+    return res.status(200).json({ message: "success", data: subjectdata})
 }

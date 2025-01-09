@@ -1,4 +1,4 @@
-const { getstudentsubjectgrade, createsubjectgrade, getsubjectgradestudent, getsubjectgradebystudentid, editsubjectgrade, deletesubjectgrade } = require("../controllers/subjectgrade")
+const { getstudentsubjectgrade, createsubjectgrade, getsubjectgradestudent, getsubjectgradebystudentid, editsubjectgrade, deletesubjectgrade, getteachersubjects, getteachersubjectsection } = require("../controllers/subjectgrade")
 const { protectteacheradviser, protectstudent, protectsuperadmin } = require("../middleware/middleware")
 
 const router = require("express").Router()
@@ -13,6 +13,12 @@ router
  .get("/getsubjectgradestudent", protectstudent, getsubjectgradestudent)
 
  .get("/getsubjectgradebystudentidsa", protectsuperadmin, getsubjectgradebystudentid)
+
+ //teacher
+ .get("/getsubjectteacher", protectteacheradviser, getteachersubjects)
+ .get("/getsubjectsectionteacher", protectteacheradviser, getteachersubjectsection)
+
+
 
 
 module.exports = router

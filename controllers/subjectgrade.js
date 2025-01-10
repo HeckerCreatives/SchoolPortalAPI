@@ -136,6 +136,45 @@ exports.editsubjectgrade = async (req, res) => {
         })
     }
 
+    const checkgradingperiod = await GradingPeriod.findOne()
+        
+    if(checkgradingperiod.quarter.toLowerCase() !== quarter.toLowerCase()){
+        return res.status(400).json({ message: "failed", data: "Please update the current grading period."})
+    }
+
+    const { student, subject } = await Subjectgrade.findOne({ _id: new mongoose.Types.ObjectId(subjectgrade) })
+
+    const getstudentsection = await Studentuserdetails.findOne({ owner: new mongoose.Types.ObjectId(student) })
+        .catch((err) => {
+            console.log(`Error fetching student section: ${err}`);
+            return null;
+        });
+
+    if (!getstudentsection) {
+        return res.status(400).json({ 
+            message: "failed", 
+            data: `Student section not found for student ID: ${student}` 
+        });
+    }
+
+    const checksubjectbyschedule = await Schedule.findOne({
+        teacher: new mongoose.Types.ObjectId(id),
+        subject: new mongoose.Types.ObjectId(subject),
+        section: new mongoose.Types.ObjectId(getstudentsection.section),
+    }).catch((err) => {
+        console.log(`Error checking subject schedule: ${err}`);
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."});
+    });
+
+    const getsuperadmin = await Staffusers.findOne({ _id: new mongoose.Types.ObjectId(id) });
+
+    if (!checksubjectbyschedule && getsuperadmin.auth !== "superadmin") {
+        return res.status(403).json({
+            message: "failed",
+            data: `Teacher is not authorized to grade student ID: ${student} for subject ID: ${subject}.`,
+        });
+    }
+
     await Subjectgrade.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(subjectgrade) }, { $set: { grade, remarks } })
     .then(data => data)
     .catch(err => {

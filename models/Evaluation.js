@@ -17,6 +17,9 @@ const EvaluationSchema = new mongoose.Schema(
                 title: {
                     type: String,
                 },
+                weightage: {
+                    type: Number,
+                },
                 questions: [
                     {
                         question: {

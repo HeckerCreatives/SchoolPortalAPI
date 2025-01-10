@@ -4,32 +4,42 @@ const Schoolyear = require("../models/Schoolyear")
 const Studentuserdetails = require("../models/Studentuserdetails")
 
 
-
 exports.createevaluation = async (req, res) => {
-    const { id } = req.user
-    const { program, schoolyear, sections } = req.body
+    const { id } = req.user;
+    const { program, schoolyear, sections: data } = req.body; 
 
-    if(!program || !schoolyear || !sections) {
+    if (!program || !schoolyear || !data || typeof data !== "object") {
         return res.status(400).json({
-           message: "failed", data: "All fields are required"
-        })
+            message: "failed",
+            data: "Program, school year, and valid data are required.",
+        });
     }
+
+    const sections = Object.values(data).map((section) => ({
+        title: section.category,
+        weightage: section.weight,
+        questions: section.questions.map((question) => ({
+            question: question.text,
+        })),
+    }));
 
     await Evaluation.create({
         program,
         schoolyear,
-        sections
+        sections,
     })
     .then(data => data)
     .catch(error => {
-        console.log(`There was an error encountered while creating evaluation. Error: ${error}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact customer support for more details." })
-    })
+        console.log(`There was an error encountered while creating evaluation. Error: ${error}`);
+        return res.status(400).json({
+            message: "bad-request",
+            data: "There's a problem with the server. Please contact customer support for more details.",
+        });
+    });
 
-    res.status(200).json({
-        message: "success"
-    })
-}
+    return res.status(200).json({ message: "success" })
+};
+
 
 exports.getevaluation = async (req, res) => {
 

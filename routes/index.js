@@ -13,6 +13,8 @@ const routers = app => {
     app.use("/gradingperiod", require("./gradingperiod"))
     app.use("/requirement", require("./requirements"))
     app.use("/schoolyear", require("./schoolyear"))
+    app.use("/supportconversation", require("./supportconversation"))
+    app.use("/supportmessage", require("./supportmessage"))
     app.use("/news", require("./news"))
     app.use("/program", require("./program"))
     app.use("/staffuser", require("./staffuser"))

@@ -5,23 +5,23 @@ const cookieParser = require('cookie-parser');
 const http = require("http");
 const cors = require("cors");
 require("dotenv").config();
+const { initialize } = require("./initialization/initialize");
 
 const app = express();
 
-const {initialize} = require("./initialization/initialize")
-
-const CORS_ALLOWED = process.env.ALLOWED_CORS
+const CORS_ALLOWED = process.env.ALLOWED_CORS;
 
 const corsConfig = {
     origin: CORS_ALLOWED.split(" "),
-    methods: ["GET", "POST", "PUT", "DELETE"], // List only` available methods
-    credentials: true, // Must be set to true
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
     allowedHeaders: ["Origin", "Content-Type", "X-Requested-With", "Accept", "Authorization"],
-    credentials: true, // Allowed Headers to be received
+    credentials: true,
 };
 
 app.use(cors(corsConfig));
 const server = http.createServer(app);
+const io = require("socket.io")(server); // Initialize socket.io with the server
 
 mongoose
   .connect(process.env.DATABASE_URL)
@@ -30,15 +30,15 @@ mongoose
     console.log("MongoDB Connected");
   })
   .catch((err) => console.log(err));
-  
 
-app.use(bodyParser.json({ limit: "50mb" }))
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: false, parameterLimit: 50000 }))
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: false, parameterLimit: 50000 }));
 app.use(cookieParser());
+
+
 
 // Routes
 require("./routes")(app);
 
-
-const port = process.env.PORT || 5000; // Dynamic port for deployment
+const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`Server is running on port: ${port}`));

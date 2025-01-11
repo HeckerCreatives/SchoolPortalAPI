@@ -10,7 +10,7 @@ exports.createconversation = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "No participant data." });
     }
 
-    const staff = await Staffusers.find({ auth: "support" })
+    const staff = await Staffusers.find({ auth: "superadmin" })
         .then((data) => data)
         .catch((err) => {
             console.log(
@@ -29,14 +29,15 @@ exports.createconversation = async (req, res) => {
     // Randomly select a staff user
     const randomStaff = staff[Math.floor(Math.random() * staff.length)];
 
+
     const length = await SupportConversation.countDocuments()
     const participants = [
         {
-            userid: randomStaff._id,
+            userId: randomStaff._id,
             userType: "Staffusers",
         },
         {
-            userid: userid || null,
+            userId: userid || null,
             userType: participant,
             anonymousName: participant === "Anonymous" ? `Anonymous${length}` : null,
         },
@@ -62,116 +63,131 @@ exports.createconversation = async (req, res) => {
 
 
 exports.Staffgetconversation = async (req, res) => {
-
     const { id } = req.user;
 
-        const rooms = await SupportConversation.aggregate([
-            {
-                $match: {
-                    "participants.userId": new mongoose.Types.ObjectId(id),
+    SupportConversation.aggregate([
+        {
+            $match: {
+                "participants": {
+                    $elemMatch: { userId: new mongoose.Types.ObjectId(id) }
                 },
             },
-            {
-                $lookup: {
-                    from: "supportmessages",
-                    localField: "_id",
-                    foreignField: "conversation",
-                    as: "messages", 
-                },
+        },
+        {
+            $lookup: {
+                from: "supportmessages",
+                localField: "_id",
+                foreignField: "conversation",
+                as: "messages",
             },
-            {
-                $unwind: {
-                    path: "$messages",
-                    preserveNullAndEmptyArrays: true, 
-                },
+        },
+        {
+            $unwind: {
+                path: "$messages",
+                preserveNullAndEmptyArrays: true,
             },
-            {
-                $sort: {
-                    "messages.createdAt": -1, 
-                },
+        },
+        {
+            $sort: {
+                "messages.createdAt": -1,
             },
-            {
-                $group: {
-                    _id: "$_id",
-                    participants: { $first: "$participants" },
-                    latestMessage: { $first: "$messages" }, 
-                },
+        },
+        {
+            $group: {
+                _id: "$_id",
+                participants: { $first: "$participants" },
+                latestMessage: { $first: "$messages" },
             },
-            {
-                $project: {
-                    participants: 1,
-                    latestMessage: 1,
-                },
+        },
+        {
+            $project: {
+                participants: 1,
+                latestMessage: 1,
             },
-        ])
-        .then(data => data)
-        .catch(err => {
-            console.log(`There's a problem encountered while fetching aggregated staff converstation. Error: ${err}`)
-            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
-        })
-
-        if (!rooms || rooms.length === 0) {
+        },
+    ])
+    .then(data => {
+        if (!data || data.length === 0) {
             return res.status(404).json({ message: "No conversations found." });
         }
-
-        return res.status(200).json({ message: "success", data: rooms });
-}
-
+        return res.status(200).json({ message: "success", data });
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching aggregated staff conversation. Error: ${err}`);
+        return res.status(400).json({
+            message: "bad-request",
+            data: "There's a problem with the server. Please contact support for more details.",
+        });
+    });
+};
 
 
 exports.getmessages = async (req, res) => {
     const { conversationid } = req.query;
 
-        if (!conversationid) {
-            return res.status(400).json({ message: "failed", data: "Conversation ID is required." });
+    if (!conversationid) {
+        return res.status(400).json({ message: "failed", data: "Conversation ID is required." });
+    }
+
+    await SupportConversation.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(conversationid),
+            },
+        },
+        {
+            $lookup: {
+                from: 'supportmessages',
+                localField: "_id",
+                foreignField: "conversation",
+                as: "messages",
+            },
+        },
+        {
+            $unwind: {
+                path: "$messages",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $sort: {
+                "messages.createdAt": 1,
+            },
+        },
+        {
+            $group: {
+                _id: "$_id",  // Group by conversation
+                messages: { $push: "$messages" },
+                participants: { $first: "$participants" },
+            },
         }
-
-        const messages = await SupportConversation.aggregate([
-            {
-                $match: {
-                    _id: new mongoose.Types.ObjectId(conversationid),
-                },
-            },
-            {
-                $lookup: {
-                    from: 'supportmessages',
-                    localField: "_id",
-                    foreignField: "conversation",
-                    as: "messages",
-                },
-            },
-            {
-                $unwind: {
-                    path: "$messages",
-                    preserveNullAndEmptyArrays: true,
-                },
-            },
-            {
-                $sort: {
-                    "messages.createdAt": 1,
-                },
-            },
-            {
-                $project: {
-                    "messages._id": 1,
-                    "messages.content": 1,
-                    "messages.createdAt": 1,
-                },
-            },
-        ])
-        .then(data => data)
-        .catch(err => {
-            console.log(`Error encountered while fetching messages. Error: ${err}`);
-            return res.status(400).json({
-                message: "bad-request",
-                data: "There's a problem with the server. Please contact support for more details.",
-            });
-        })
-
+    ])
+    .then(messages => {
         if (!messages || messages.length === 0) {
             return res.status(404).json({ message: "No messages found for this conversation." });
         }
 
-        return res.status(200).json({ message: "success", data: messages });
+        const finalData = {
+            participants: messages[0].participants,
+            staffMessages: [],
+            anonymousMessages: [],
+        };
+
+        messages[0].messages.forEach(message => {
+            if (message.sender.userType === 'Staffusers') {
+                finalData.staffMessages.push(message);
+            } else {
+                finalData.anonymousMessages.push(message);
+            }
+        });
+
+        return res.status(200).json({ message: "success", data: finalData });
+    })
+    .catch(err => {
+        console.log(`Error encountered while fetching messages. Error: ${err}`);
+        return res.status(400).json({
+            message: "bad-request",
+            data: "There's a problem with the server. Please contact support for more details.",
+        });
+    });
 };
- 

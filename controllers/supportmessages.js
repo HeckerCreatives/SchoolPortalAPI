@@ -1,10 +1,11 @@
 const { default: mongoose } = require("mongoose")
-const SupportMessage = require("../models/Supportmessage")
+const SupportMessage = require("../models/Supportmessage");
+const SupportConversation = require("../models/Supportconversation");
 
 
 exports.anonymoussendmessage = async (req, res) => {
 
-    const { conversationid, message } = req.user
+    const { conversationid, message } = req.body
 
     if (!conversationid) {
         return res.status(400).json({ message: "failed", data: "Conversation ID is required." });
@@ -14,11 +15,16 @@ exports.anonymoussendmessage = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Message data is required." });
     }
 
+    const sender = await SupportConversation.findOne({ _id: new mongoose.Types.ObjectId(conversationid)});
+
+    
+
     await SupportMessage.create({
         conversation: new mongoose.Types.ObjectId(conversationid),
         message: message,
         sender: {
-            userType: "Anonymous" 
+            userType: "Anonymous",
+            anonymousName: sender.participants[1].anonymousName
         }
     })
     .then(data => data)
@@ -33,7 +39,7 @@ exports.anonymoussendmessage = async (req, res) => {
 exports.staffsendmessage = async (req, res) => {
 
     const { id } = req.user
-    const { conversationid, message } = req.user
+    const { conversationid, message } = req.body
 
     if (!conversationid) {
         return res.status(400).json({ message: "failed", data: "Conversation ID is required." });

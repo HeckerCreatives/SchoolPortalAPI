@@ -17,6 +17,12 @@ const SupportMessageSchema = new mongoose.Schema({
             enum: ['Studentusers', 'Staffusers', 'Ticketusers', 'Anonymous'],
             required: true,
         },
+        anonymousName: {
+            type: String,
+            required: function () {
+                return this.userType === 'Anonymous';
+            },
+        },
     },
     message: { 
         type: String, 

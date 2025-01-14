@@ -169,16 +169,11 @@ exports.getmessages = async (req, res) => {
 
         const finalData = {
             participants: messages[0].participants,
-            staffMessages: [],
-            anonymousMessages: [],
+            messages: []
         };
 
         messages[0].messages.forEach(message => {
-            if (message.sender.userType === 'Staffusers') {
-                finalData.staffMessages.push(message);
-            } else {
-                finalData.anonymousMessages.push(message);
-            }
+           finalData.messages.push(message)
         });
 
         return res.status(200).json({ message: "success", data: finalData });

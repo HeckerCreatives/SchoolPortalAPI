@@ -4,37 +4,82 @@ const SupportConversation = require("../models/Supportconversation");
 
 
 exports.anonymoussendmessage = async (req, res) => {
+    const { userid, participant, message, conversationid } = req.body;
 
-    const { conversationid, message } = req.body
-
-    if (!conversationid) {
-        return res.status(400).json({ message: "failed", data: "Conversation ID is required." });
+    if (!participant || participant !== "Anonymous") {
+        return res.status(400).json({ message: "failed", data: "Participant must be anonymous." });
     }
 
     if (!message) {
         return res.status(400).json({ message: "failed", data: "Message data is required." });
     }
 
-    const sender = await SupportConversation.findOne({ _id: new mongoose.Types.ObjectId(conversationid)});
+    try {
+        let conversation;
 
-    
+        if (conversationid) {
+            // Check if the conversation exists
+            conversation = await SupportConversation.findOne({
+                _id: new mongoose.Types.ObjectId(conversationid),
+                "participants.userType": "Anonymous",
+            });
 
-    await SupportMessage.create({
-        conversation: new mongoose.Types.ObjectId(conversationid),
-        message: message,
-        sender: {
-            userType: "Anonymous",
-            anonymousName: sender.participants[1].anonymousName
+            if (!conversation) {
+                return res.status(404).json({ message: "failed", data: "Conversation not found." });
+            }
+        } else {
+            // Fetch support staff users if no conversation ID is provided
+            const staff = await Staffusers.find({ auth: "superadmin" });
+            if (!staff || staff.length === 0) {
+                return res.status(400).json({ message: "failed", data: "No support staff found." });
+            }
+
+            // Randomly select a staff user
+            const randomStaff = staff[Math.floor(Math.random() * staff.length)];
+
+            // Count documents for unique anonymous name
+            const length = await SupportConversation.countDocuments();
+
+            // Create a new conversation
+            const participants = [
+                {
+                    userId: randomStaff._id,
+                    userType: "Staffusers",
+                },
+                {
+                    userId: userid || null, 
+                    userType: participant,
+                    anonymousName: `Anonymous${length}`,
+                },
+            ];
+
+            conversation = await SupportConversation.create({
+                participants,
+                status: "open",
+            });
         }
-    })
-    .then(data => data)
-    .catch(err => {
-        console.log(`There's a problem encountered while anonymous user sending message. Error: ${err}`)
-        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
-    })
 
-    return res.status(200).json({ message: "success" })
-}
+        // Create and send the message
+        await SupportMessage.create({
+            conversation: conversation._id,
+            message: message,
+            sender: {
+                userType: "Anonymous",
+                anonymousName: conversation.participants.find(p => p.userType === "Anonymous").anonymousName,
+            },
+        });
+
+        return res.status(200).json({ message: "success", data: { conversationId: conversation._id } });
+    } catch (err) {
+        console.error(`Error sending message: ${err}`);
+        return res.status(500).json({
+            message: "bad-request",
+            data: "There's a problem with the server! Please contact support for more details.",
+        });
+    }
+};
+
+
 
 exports.staffsendmessage = async (req, res) => {
 

@@ -100,6 +100,11 @@ exports.Staffgetconversation = async (req, res) => {
             },
         },
         {
+            $sort: {
+                "latestMessage.createdAt": -1, 
+            },
+        },
+        {
             $project: {
                 participants: 1,
                 latestMessage: 1,

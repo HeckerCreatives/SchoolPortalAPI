@@ -62,6 +62,7 @@ exports.anonymoussendmessage = async (req, res) => {
         // Create and send the message
         await SupportMessage.create({
             conversation: conversation._id,
+            type: "Message",
             message: message,
             sender: {
                 userType: "Anonymous",
@@ -97,9 +98,35 @@ exports.staffsendmessage = async (req, res) => {
     await SupportMessage.create({
         conversation: new mongoose.Types.ObjectId(conversationid),
         message: message,
+        type: "Message",
         sender: {
             userId: new mongoose.Types.ObjectId(id),
             userType: "Staffusers" 
+        }
+    })
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while anonymous user sending message. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    return res.status(200).json({ message: "success" })
+}
+
+exports.userdisconnect = async (req, res) => {
+
+    const { conversationid, message } = req.body
+
+    if (!conversationid) {
+        return res.status(400).json({ message: "failed", data: "Conversation ID is required." });
+    }
+
+    await SupportMessage.create({
+        conversation: new mongoose.Types.ObjectId(conversationid),
+        message: message,
+        type: "Disconnect",
+        sender: {
+            userType: "System", 
         }
     })
     .then(data => data)

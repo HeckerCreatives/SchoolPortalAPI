@@ -7,6 +7,11 @@ const SupportMessageSchema = new mongoose.Schema({
         ref: 'Supportconversation', // Links to the Conversation model
         required: true,
     },
+    type: {
+        type: String,
+        enum: ['Message', 'System'],
+        required: true,
+    },
     sender: {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -14,7 +19,7 @@ const SupportMessageSchema = new mongoose.Schema({
         },
         userType: {
             type: String,
-            enum: ['Studentusers', 'Staffusers', 'Ticketusers', 'Anonymous'],
+            enum: ['Studentusers', 'Staffusers', 'Ticketusers', 'Anonymous', 'System'],
             required: true,
         },
         anonymousName: {

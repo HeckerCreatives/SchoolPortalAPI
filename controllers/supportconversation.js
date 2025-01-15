@@ -90,9 +90,19 @@ exports.Staffgetconversation = async (req, res) => {
             },
         },
         {
-            $project: {
+            $addFields: {
+                isOwnerless: {
+                    $not: {
+                        $in: ["Staffusers", "$participants.userType"]
+                    }
+                }
+            },
+        },
+        {
+            $project: { 
                 participants: 1,
                 latestMessage: 1,
+                isOwnerless: 1,  // Include the isOwnerless flag in the result
             },
         },
     ])
@@ -108,7 +118,7 @@ exports.Staffgetconversation = async (req, res) => {
                 message: "bad-request",
                 data: "There's a problem with the server. Please contact support for more details.",
             });
-        });    
+        });
 };
 
 

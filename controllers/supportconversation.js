@@ -241,11 +241,19 @@ exports.ticketgetconversation = async (req, res) => {
         },
         {
             $lookup: {
-                from: "requirements",
+                from: "ticketusers",
                 localField: "participants.userId",
                 foreignField: "owner",
-                as: "ticketdetails",
+                as: "ticket",
             },
+        },
+        {
+            $lookup: {
+                from: "requirements",
+                localField: "ticket.requirements",
+                foreignField: "_id",
+                as: "ticketdetails"
+            }
         },
         {
             $lookup: {

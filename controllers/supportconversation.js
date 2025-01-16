@@ -384,10 +384,10 @@ exports.Staffgetconversation = async (req, res) => {
         },
         {
             $lookup: {
-                from: "ticketuserdetails",
+                from: "ticketusers",
                 localField: "participants.userId",
-                foreignField: "owner",
-                as: "ticketdetails",
+                foreignField: "_id",
+                as: "ticketusers",
             },
         },
         {
@@ -400,23 +400,59 @@ exports.Staffgetconversation = async (req, res) => {
                             $mergeObjects: [
                                 "$$participant",
                                 {
-                                    $arrayElemAt: [
-                                        {
-                                            $filter: {
-                                                input: {
-                                                    $concatArrays: [
-                                                        "$studentdetails",
-                                                        "$ticketdetails",
-                                                    ],
-                                                },
-                                                as: "details",
-                                                cond: {
-                                                    $eq: ["$$details.owner", "$$participant.userId"],
-                                                },
+                                    $let: {
+                                        vars: {
+                                            studentDetail: {
+                                                $arrayElemAt: [
+                                                    {
+                                                        $filter: {
+                                                            input: "$studentdetails",
+                                                            as: "detail",
+                                                            cond: { $eq: ["$$detail.owner", "$$participant.userId"] },
+                                                        },
+                                                    },
+                                                    0,
+                                                ],
+                                            },
+                                            ticketDetail: {
+                                                $arrayElemAt: [
+                                                    {
+                                                        $filter: {
+                                                            input: "$ticketusers",
+                                                            as: "detail",
+                                                            cond: { $eq: ["$$detail._id", "$$participant.userId"] },
+                                                        },
+                                                    },
+                                                    0,
+                                                ],
                                             },
                                         },
-                                        0,
-                                    ],
+                                        in: {
+                                            userId: "$$participant.userId",
+                                            userType: "$$participant.userType",
+                                            anonymousName: {
+                                                $ifNull: [
+                                                    "$$ticketDetail.username",
+                                                    {
+                                                        $ifNull: [
+                                                            "$$studentDetail.firstname",
+                                                            {
+                                                                $concat: [
+                                                                    { $ifNull: ["$$studentDetail.firstname", ""] },
+                                                                    " ",
+                                                                    { $ifNull: ["$$studentDetail.middlename", ""] },
+                                                                    " ",
+                                                                    { $ifNull: ["$$studentDetail.lastname", ""] },
+                                                                ],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                        
+                                        
+                                    },
                                 },
                             ],
                         },
@@ -455,25 +491,16 @@ exports.Staffgetconversation = async (req, res) => {
                 "latestMessage.createdAt": -1,
             },
         },
-        {
+               {
             $addFields: {
                 isOwnerless: {
-                    $not: {
-                        $in: ["Staffusers", "$participants.userType"],
-                    },
+                    $eq: [{ $size: "$participants" }, 0],
                 },
             },
         },
         {
             $project: {
-                participants: {
-                    userId: 1,
-                    userType: 1,
-                    anonymousName: 1,
-                    firstname: 1,
-                    middlename: 1,
-                    lastname: 1,
-                },
+                participants: 1,
                 latestMessage: 1,
                 isOwnerless: 1,
             },
@@ -492,6 +519,7 @@ exports.Staffgetconversation = async (req, res) => {
                 data: "There's a problem with the server. Please contact support for more details.",
             });
         });
+    
     
 };
 

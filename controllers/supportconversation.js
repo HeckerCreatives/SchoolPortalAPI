@@ -432,10 +432,14 @@ exports.Staffgetconversation = async (req, res) => {
                                             userType: "$$participant.userType",
                                             anonymousName: {
                                                 $ifNull: [
-                                                    "$$ticketDetail.username",
+                                                    "$$participant.anonymousName",
                                                     {
+
                                                         $ifNull: [
-                                                            "$$studentDetail.firstname",
+                                                            "$$ticketDetail.username",
+                                                            {
+                                                                $ifNull: [
+                                                                    "$$studentDetail.firstname",
                                                             {
                                                                 $concat: [
                                                                     { $ifNull: ["$$studentDetail.firstname", ""] },
@@ -447,6 +451,8 @@ exports.Staffgetconversation = async (req, res) => {
                                                             },
                                                         ],
                                                     },
+                                                ]
+                                            }
                                                 ],
                                             },
                                         },

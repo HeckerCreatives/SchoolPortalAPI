@@ -6,7 +6,6 @@ const http = require("http");
 const cors = require("cors");
 require("dotenv").config();
 const { initialize } = require("./initialization/initialize");
-const sockethandler = require("./socket/socket")
 
 const app = express();
 
@@ -21,25 +20,36 @@ const corsConfig = {
 };
 
 app.use(cors(corsConfig));
+
+// Create HTTP server
 const server = http.createServer(app);
-const io = require("socket.io")(server); // Initialize socket.io with the server
 
+// Initialize Socket.IO with the server
+const io = require("socket.io")(server, {
+    cors: corsConfig, // Use the same CORS configuration for Socket.IO
+});
+
+// Connect to MongoDB
 mongoose
-  .connect(process.env.DATABASE_URL)
-  .then(() => {
-    initialize();
-    console.log("MongoDB Connected");
-  })
-  .catch((err) => console.log(err));
+    .connect(process.env.DATABASE_URL)
+    .then(() => {
+        initialize();
+        console.log("MongoDB Connected");
+    })
+    .catch((err) => console.log(err));
 
+// Middleware
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: false, parameterLimit: 50000 }));
 app.use(cookieParser());
 
-
-sockethandler(io)
 // Routes
 require("./routes")(app);
 
+// Socket.IO Logic
+const socketSetup = require('./socket/socket'); // Correct path to socket.js
+socketSetup(io); // Pass the `io` instance to the socket setup
+
+// Start the server
 const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`Server is running on port: ${port}`));

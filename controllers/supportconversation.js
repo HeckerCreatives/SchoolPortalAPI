@@ -12,7 +12,13 @@ exports.createconversation = async (req, res) => {
     }
 
 
-    const length = await SupportConversation.countDocuments()
+    const anonymousCount = await SupportConversation.aggregate([
+        { $unwind: "$participants" },
+        { $match: { "participants.userType": "Anonymous" } }, 
+        { $count: "count" },
+    ]);
+
+    const length = anonymousCount.length > 0 ? anonymousCount[0].count : 0;    
     const participants = [
         {
             userId: userid || null,
@@ -38,24 +44,119 @@ exports.createconversation = async (req, res) => {
         });
 };
 
-
-
-exports.Staffgetconversation = async (req, res) => {
+exports.createticketuserconversation = async (req, res) => {
     const { id } = req.user;
 
-    SupportConversation.aggregate([
+    if (!id) {
+        return res.status(400).json({ message: "failed", data: "No participant data." });
+    }
+
+    const participants = [
+        {
+            userId: id,
+            userType: 'Ticketusers',
+        },
+    ];
+
+
+    await SupportConversation.create({
+        participants,
+        status: "open",
+    })
+        .then((data) => {
+            res.status(200).json({ message: "success", data });
+        })
+        .catch((err) => {
+            console.log(`There's a problem encountered while creating conversation. Error: ${err}`);
+            res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
+};
+exports.createstudentuserconversation = async (req, res) => {
+    const { id } = req.user;
+
+    if (!id) {
+        return res.status(400).json({ message: "failed", data: "No participant data." });
+    }
+
+    const participants = [
+        {
+            userId: id,
+            userType: 'Studentusers',
+        },
+    ];
+
+
+    await SupportConversation.create({
+        participants,
+        status: "open",
+    })
+        .then((data) => {
+            res.status(200).json({ message: "success", data });
+        })
+        .catch((err) => {
+            console.log(`There's a problem encountered while creating conversation. Error: ${err}`);
+            res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
+};
+
+
+
+exports.studentgetconversation = async (req, res) => {
+    const { id } = req.user;
+
+   await SupportConversation.aggregate([
         {
             $match: {
-                $or: [
-                    { 
-                        participants: { 
-                            $elemMatch: { userId: new mongoose.Types.ObjectId(id) } 
-                        } 
+                participants: { $elemMatch: { userId: new mongoose.Types.ObjectId(id) } },
+            },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "studentdetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "staffdetails",
+            },
+        },
+        {
+            $addFields: {
+                participants: {
+                    $map: {
+                        input: "$participants",
+                        as: "participant",
+                        in: {
+                            $mergeObjects: [
+                                "$$participant",
+                                {
+                                    $arrayElemAt: [
+                                        {
+                                            $filter: {
+                                                input: { $concatArrays: ["$studentdetails", "$staffdetails"] },
+                                                as: "details",
+                                                cond: { $eq: ["$$details.owner", "$$participant.userId"] },
+                                            },
+                                        },
+                                        0,
+                                    ],
+                                },
+                            ],
+                        },
                     },
-                    { 
-                        "participants.userType": { $ne: "Staffusers" } 
-                    },
-                ],
+                },
             },
         },
         {
@@ -93,32 +194,297 @@ exports.Staffgetconversation = async (req, res) => {
             $addFields: {
                 isOwnerless: {
                     $not: {
-                        $in: ["Staffusers", "$participants.userType"]
-                    }
-                }
+                        $in: ["Staffusers", "$participants.userType"],
+                    },
+                },
             },
         },
         {
-            $project: { 
-                participants: 1,
+            $project: {
+                participants: {
+                    userId: 1,
+                    userType: 1,
+                    anonymousName: 1,
+                    firstname: 1,
+                    middlename: 1,
+                    lastname: 1,
+                },
                 latestMessage: 1,
-                isOwnerless: 1,  // Include the isOwnerless flag in the result
+                isOwnerless: 1,
             },
         },
     ])
-        .then(data => {
+        .then((data) => {
             if (!data || data.length === 0) {
                 return res.status(404).json({ message: "No conversations found." });
             }
             return res.status(200).json({ message: "success", data });
         })
-        .catch(err => {
+        .catch((err) => {
             console.log(`Error fetching conversations: ${err}`);
             return res.status(400).json({
                 message: "bad-request",
                 data: "There's a problem with the server. Please contact support for more details.",
             });
         });
+    
+};
+
+exports.ticketgetconversation = async (req, res) => {
+    const { id } = req.user;
+
+   await SupportConversation.aggregate([
+        {
+            $match: {
+                participants: { $elemMatch: { userId: new mongoose.Types.ObjectId(id) } },
+            },
+        },
+        {
+            $lookup: {
+                from: "ticketuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "ticketdetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "staffdetails",
+            },
+        },
+        {
+            $addFields: {
+                participants: {
+                    $map: {
+                        input: "$participants",
+                        as: "participant",
+                        in: {
+                            $mergeObjects: [
+                                "$$participant",
+                                {
+                                    $arrayElemAt: [
+                                        {
+                                            $filter: {
+                                                input: { $concatArrays: ["$ticketdetails", "$staffdetails"] },
+                                                as: "details",
+                                                cond: { $eq: ["$$details.owner", "$$participant.userId"] },
+                                            },
+                                        },
+                                        0,
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "supportmessages",
+                localField: "_id",
+                foreignField: "conversation",
+                as: "messages",
+            },
+        },
+        {
+            $unwind: {
+                path: "$messages",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $sort: {
+                "messages.createdAt": -1,
+            },
+        },
+        {
+            $group: {
+                _id: "$_id",
+                participants: { $first: "$participants" },
+                latestMessage: { $first: "$messages" },
+            },
+        },
+        {
+            $sort: {
+                "latestMessage.createdAt": -1,
+            },
+        },
+        {
+            $addFields: {
+                isOwnerless: {
+                    $not: {
+                        $in: ["Staffusers", "$participants.userType"],
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                participants: {
+                    userId: 1,
+                    userType: 1,
+                    anonymousName: 1,
+                    firstname: 1,
+                    middlename: 1,
+                    lastname: 1,
+                },
+                latestMessage: 1,
+                isOwnerless: 1,
+            },
+        },
+    ])
+        .then((data) => {
+            if (!data || data.length === 0) {
+                return res.status(404).json({ message: "No conversations found." });
+            }
+            return res.status(200).json({ message: "success", data });
+        })
+        .catch((err) => {
+            console.log(`Error fetching conversations: ${err}`);
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
+    
+};
+
+
+exports.Staffgetconversation = async (req, res) => {
+    const { id } = req.user;
+
+    await SupportConversation.aggregate([
+        {
+            $match: {
+                $or: [
+                    { participants: { $elemMatch: { userId: new mongoose.Types.ObjectId(id) } } },
+                    { "participants.userType": { $ne: "Staffusers" } },
+                ],
+            },
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "studentdetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "ticketuserdetails",
+                localField: "participants.userId",
+                foreignField: "owner",
+                as: "ticketdetails",
+            },
+        },
+        {
+            $addFields: {
+                participants: {
+                    $map: {
+                        input: "$participants",
+                        as: "participant",
+                        in: {
+                            $mergeObjects: [
+                                "$$participant",
+                                {
+                                    $arrayElemAt: [
+                                        {
+                                            $filter: {
+                                                input: {
+                                                    $concatArrays: [
+                                                        "$studentdetails",
+                                                        "$ticketdetails",
+                                                    ],
+                                                },
+                                                as: "details",
+                                                cond: {
+                                                    $eq: ["$$details.owner", "$$participant.userId"],
+                                                },
+                                            },
+                                        },
+                                        0,
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "supportmessages",
+                localField: "_id",
+                foreignField: "conversation",
+                as: "messages",
+            },
+        },
+        {
+            $unwind: {
+                path: "$messages",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $sort: {
+                "messages.createdAt": -1,
+            },
+        },
+        {
+            $group: {
+                _id: "$_id",
+                participants: { $first: "$participants" },
+                latestMessage: { $first: "$messages" },
+            },
+        },
+        {
+            $sort: {
+                "latestMessage.createdAt": -1,
+            },
+        },
+        {
+            $addFields: {
+                isOwnerless: {
+                    $not: {
+                        $in: ["Staffusers", "$participants.userType"],
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                participants: {
+                    userId: 1,
+                    userType: 1,
+                    anonymousName: 1,
+                    firstname: 1,
+                    middlename: 1,
+                    lastname: 1,
+                },
+                latestMessage: 1,
+                isOwnerless: 1,
+            },
+        },
+    ])
+        .then((data) => {
+            if (!data || data.length === 0) {
+                return res.status(404).json({ message: "No conversations found." });
+            }
+            return res.status(200).json({ message: "success", data });
+        })
+        .catch((err) => {
+            console.log(`Error fetching conversations: ${err}`);
+            return res.status(400).json({
+                message: "bad-request",
+                data: "There's a problem with the server. Please contact support for more details.",
+            });
+        });
+    
 };
 
 

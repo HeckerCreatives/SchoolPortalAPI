@@ -30,7 +30,7 @@ exports.staffuserlist = async (req, res) => {
         };
     }
     
-    if (filter === 'admin' || filter === 'superadmin' || filter === 'finance' || filter === 'registrar' || filter === 'adviser' || filter === 'teacher') {
+    if (filter === 'admin' || filter === 'superadmin' || filter === 'finance' || filter === 'registrar' || filter === 'adviser' || filter === 'teacher' || filter === 'support') {
         filterMatchStage = { auth: filter };
     }
     

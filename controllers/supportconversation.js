@@ -364,16 +364,28 @@ exports.ticketgetconversation = async (req, res) => {
 
 exports.Staffgetconversation = async (req, res) => {
     const { id } = req.user;
+    const { filter } = req.query
+
+    let matchCondition = null;
+
+    // Define the match condition based on the filter
+    if (filter === "ownerless") {
+        matchCondition = {
+            $match: {
+                "participants.userType": { $ne: "Staffusers" }, // Fixed extra space after "Staffusers"
+            },
+        };
+    } else if (filter === "id") {
+        matchCondition = {
+            $match: {
+                participants: { $elemMatch: { userId: new mongoose.Types.ObjectId(id) } },
+            },
+        };
+    }
+    console.log(matchCondition)
 
     await SupportConversation.aggregate([
-        {
-            $match: {
-                $or: [
-                    { participants: { $elemMatch: { userId: new mongoose.Types.ObjectId(id) } } },
-                    { "participants.userType": { $ne: "Staffusers" } },
-                ],
-            },
-        },
+        ...(matchCondition ? [matchCondition] : []),
         {
             $lookup: {
                 from: "studentuserdetails",
@@ -500,7 +512,7 @@ exports.Staffgetconversation = async (req, res) => {
                {
             $addFields: {
                 isOwnerless: {
-                    $eq: [{ $size: "$participants" }, 0],
+                    $eq: [{ $size: "$participants" }, 1],
                 },
             },
         },
@@ -605,6 +617,16 @@ exports.matchstaffuserwithconversation = async (req, res) => {
     if(!conversationid){
         return res.status(400).json({ message: "failed", data: "There is no conversation ID in your selected conversation."})
     }
+
+    const checklength = await SupportConversation.findOne({ _id: new mongoose.Types.ObjectId(conversationid)})
+
+    if (checklength.participants.length >= 2) {
+        return res.status(400).json({
+            message: "failed",
+            data: "Conversation has already been selected by another support user.",
+        });
+    }
+    
 
     const newparticipant = [
         {

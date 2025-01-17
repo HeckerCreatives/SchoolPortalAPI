@@ -7,6 +7,10 @@ const QuestSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Schoolyear"
         },
+        assignment: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Assignments"
+        },
         title: {
             type: String,
             required: true,

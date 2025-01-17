@@ -1,17 +1,19 @@
 const { default: mongoose } = require("mongoose");
 
 
-
-
 const AssignmentSchema = new mongoose.Schema(
     {
+        teacher: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Staffusers"
+        },
         subject: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Subjects"
+            ref: "Subject"
         },
         section: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Sections"
+            ref: "Section"
         },
         schoolyear: {
             type: mongoose.Schema.Types.ObjectId,
@@ -29,6 +31,10 @@ const AssignmentSchema = new mongoose.Schema(
             type: String,
             index: true,
         },
+        maxscore: {
+            type: Number,
+            index: true,
+        },
         submissions: [
             {
                 student: {
@@ -40,6 +46,9 @@ const AssignmentSchema = new mongoose.Schema(
                 },
                 answer: {
                     type: String
+                },
+                score: {
+                    type: Number,
                 }
             }
         ]

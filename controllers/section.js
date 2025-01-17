@@ -638,9 +638,13 @@ exports.studentlistbysectionidteacher = async (req, res) => {
         {
             $match: { 
                 _id: new mongoose.Types.ObjectId(sectionid),
-                subjects: { $in: [new mongoose.Types.ObjectId(subjectid)] }
-
-            },
+                subjects: { 
+                    $elemMatch: { 
+                        subject: new mongoose.Types.ObjectId(subjectid) 
+                    } 
+                }
+            }
+            
         },
         {
             $lookup: {
@@ -744,7 +748,7 @@ exports.getstudentsubjects = async (req, res) => {
         {
             $lookup: {
                 from: "subjects", 
-                localField: "subjects",
+                localField: "subjects.subject",
                 foreignField: "_id",
                 as: "subjectDetails",
             },
@@ -936,25 +940,22 @@ exports.getstudentsubjectsteacher = async (req, res) => {
 
     const subjectlist = await Section.aggregate([
         {
-            $match: { 
+            $match: {
                 students: new mongoose.Types.ObjectId(studentid),
                 subjects: {
-                    $filter: {
-                        input: "$subjects",
-                        as: "subject",
-                        cond: { $eq: ["$$subject._id", new mongoose.Types.ObjectId(subjectid)] }
+                    $elemMatch: {
+                        subject: new mongoose.Types.ObjectId(subjectid)
                     }
                 }
-
             }
         },
         {
             $lookup: {
                 from: "subjects", 
-                localField: "subjects",
-                foreignField: "_id",
-                as: "subjectDetails",
-            },
+                localField: "subjects.subject", 
+                foreignField: "_id", 
+                as: "subjectDetails" 
+            }
         },
         {
             $lookup: {
@@ -1131,3 +1132,64 @@ exports.getstudentsubjectsteacher = async (req, res) => {
 }
 
 
+
+
+exports.getSubjectListBySection = async (req, res) => {
+    const { section } = req.query
+
+    if (!mongoose.isValidObjectId(section)) {
+        return res.status(400).json({ 
+            message: "failed", 
+            data: "Invalid section ID format." 
+        });
+    }
+
+    const data = await Section.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(section)
+            }
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subjects.subject",   // Field in Section collection
+                foreignField: "_id",              // Field in Subjects collection
+                as: "subjectdetails"
+            }
+        },
+        {
+            $unwind: {
+                path: "$subjectdetails",        
+                preserveNullAndEmptyArrays: true,
+            }
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",        
+                localField: "subjects.teacher",  
+                foreignField: "owner",           
+                as: "staffdetails"
+            }
+        },
+        {
+            $unwind: {
+                path: "$staffdetails",           
+                preserveNullAndEmptyArrays: true,
+            }
+        },
+        {
+            $project: {
+                "subjectdetails._id": 1,         
+                "subjectdetails.name": 1,       
+                "staffdetails._id": 1,        
+                "staffdetails.firstname": 1,     
+                "staffdetails.middlename": 1,    
+                "staffdetails.lastname": 1      
+            }
+        }
+    ])
+    
+    return res.status(200).json({ message: "success", data: data })
+
+}

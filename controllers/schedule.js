@@ -87,16 +87,21 @@ exports.createSchedule = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
-    const subjectExists = isSubjectExisting.subjects.includes(isSubjectExisting);
-
+    const subjectExists = isSubjectExisting.subjects.some(
+        (subj) => subj.subject.toString() === subject.toString()  // Compare ObjectId as strings
+    );
+    
     console.log(subjectExists)
+    const subjects = 
+        {
+            subject: new mongoose.Types.ObjectId(subject),
+            teacher: new mongoose.Types.ObjectId(teacher)
+        }
+    
     if (!subjectExists) {
-        console.log("hi passed here")
-        isSubjectExisting.subjects.push(subject);     
+        isSubjectExisting.subjects.push(subjects);     
         await isSubjectExisting.save();
-
     }
-
 
 
     await Schedule.create({

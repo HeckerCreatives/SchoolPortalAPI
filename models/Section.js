@@ -23,9 +23,16 @@ const SectionSchema = new mongoose.Schema(
             ref: "Schoolyear"
         },
         subjects: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Subject"
-        }],
+            subject: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Subjects"       
+            },
+            teacher: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Staffusers"
+            }
+        }
+        ],
         students: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Studentusers',

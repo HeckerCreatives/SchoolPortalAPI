@@ -6,7 +6,10 @@ const Entranceexam = require("../models/Entranceexam");
 exports.submitrequirement = async (req, res) => {
     const { level, program, gender, firstname, middlename, lastname, address, email, phonenumber, telephonenumber, mcontact, mfirstname, mmaidenname, ffirstname, flastname, fcontact, gfirstname, glastname, gcontact, religion, civilstatus  } = req.body
 
+    console.log(req.body)
+
     const files = req.files;
+    console.log(req.files)
     if (
         !level || !program || !firstname || !lastname || !address || !email ||
         !phonenumber|| !gender || !telephonenumber || !religion || !civilstatus
@@ -231,6 +234,7 @@ exports.getrequirements = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please contact support for more details."})
     })
 
+    
     const totalDocuments = await Requirements.countDocuments(filterMatchStage)
 
     
@@ -246,8 +250,8 @@ exports.getrequirements = async (req, res) => {
             ticketid: temp.ticketuserDetails._id,
             ticketusername: temp.ticketuserDetails.username,           
             fullname: `${temp.firstname} ${temp?.middlename} ${temp.lastname}`,
-            level: temp.gradeleveldetails.level,
-            program: temp.programdetails.name,
+            level: temp.gradeleveldetails?.level,
+            program: temp.programdetails?.name,
             address: temp.address,
             email: temp.email,
             gender: temp?.gender || "",

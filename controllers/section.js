@@ -361,6 +361,11 @@ exports.selectSection = async (req, res) => {
         return res.status(404).json({ message: "failed", data: "Section not found." });
     }
 
+
+    if(studentinfo.level.toString() !== section.gradelevel.toString()){
+        return res.status(404).json({ message: "failed", data: "You are not allowed to select section from other grade levels." });
+    }
+
     const maleCount = await Studentuserdetails.countDocuments({
         _id: { $in: section.students },
         gender: "male",
@@ -1193,3 +1198,161 @@ exports.getSubjectListBySection = async (req, res) => {
     return res.status(200).json({ message: "success", data: data })
 
 }
+exports.getSubjectListByStudent = async (req, res) => {
+    const { id } = req.user;
+
+    const data = await Section.aggregate([
+        {
+            $match: {
+                students: new mongoose.Types.ObjectId(id), // Match sections where the student is enrolled
+            },
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subjects.subject", // Lookup subject details
+                foreignField: "_id",
+                as: "subjectdetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "subjects.teacher", // Lookup staff details
+                foreignField: "owner",
+                as: "staffdetails",
+            },
+        },
+        {
+            $addFields: {
+                subjects: {
+                    $map: {
+                        input: "$subjects",
+                        as: "subject",
+                        in: {
+                            teacherDetails: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$staffdetails",
+                                            as: "staffDetail",
+                                            cond: { $eq: ["$$staffDetail.owner", "$$subject.teacher"] },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                            subjectDetails: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$subjectdetails",
+                                            as: "subjectDetail",
+                                            cond: { $eq: ["$$subjectDetail._id", "$$subject.subject"] },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                _id: 1, // Keep the section ID
+                name: 1, // Section name
+                subjects: 1, // Mapped subjects with details
+            },
+        },
+    ]);
+
+    const finaldata = {
+        section: [],
+        subjects: []
+    }
+
+
+    data.forEach(temp => {
+        finaldata.section.push({
+            section: temp.name,
+            sectionid: temp._id
+        })
+
+        temp.subjects?.forEach(temp2 => {
+            finaldata.subjects.push({
+                teachername: `${temp2.teacherDetails?.firstname} ${temp2.teacherDetails?.lastname}`,
+                teacherid: temp2.teacherDetails.owner,
+                subjectdetails: temp2.subjectDetails.name,
+                subjectid: temp2.subjectDetails._id
+            })
+        })
+    })
+
+    return res.status(200).json({ message: "success", data: finaldata });
+};
+
+exports.getSubjectListByTeacher = async (req, res) => {
+    const { id } = req.user;
+
+    const data = await Section.aggregate([
+        {
+            $match: {
+                "subjects.teacher": new mongoose.Types.ObjectId(id), // Match sections where this teacher is assigned
+            },
+        },
+        {
+            $addFields: {
+                subjects: {
+                    $filter: {
+                        input: "$subjects", // Filter the subjects array
+                        as: "subject",
+                        cond: { $eq: ["$$subject.teacher", new mongoose.Types.ObjectId(id)] },
+                    },
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "subjects",
+                localField: "subjects.subject", // Lookup only filtered subjects
+                foreignField: "_id",
+                as: "subjectdetails",
+            },
+        },
+        {
+            $lookup: {
+                from: "staffuserdetails",
+                localField: "subjects.teacher", // Lookup staff details for filtered subjects
+                foreignField: "owner",
+                as: "staffdetails",
+            },
+        },
+        {
+            $unwind: {
+                path: "$subjectdetails", // Unwind subject details
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $unwind: {
+                path: "$staffdetails", // Unwind staff details
+                preserveNullAndEmptyArrays: true,
+            },
+        },
+        {
+            $project: {
+                name: 1,
+                "subjectdetails._id": 1, // Include only necessary subject details
+                "subjectdetails.name": 1,
+                "staffdetails._id": 1, // Include only necessary staff details
+                "staffdetails.firstname": 1,
+                "staffdetails.middlename": 1,
+                "staffdetails.lastname": 1,
+            },
+        },
+    ]);
+
+    return res.status(200).json({ message: "success", data: data });
+};

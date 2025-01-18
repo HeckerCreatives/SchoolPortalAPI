@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose")
 const Schedule = require("../models/Schedule")
 const Schoolyear = require("../models/Schoolyear")
 const Assignment = require("../models/Assignment")
+const Quest = require("../models/Quest")
 
 
 
@@ -10,7 +11,7 @@ exports.createassignment = async (req, res) => {
     const { id: teacher } = req.user
 
     console.log(teacher)
-    const { subject, section, title, description, duedate, maxscore} = req.body
+    const { subject, section, title, description, duedate, maxscore, ison, qtitle, qdescription, qpoints, qduedate} = req.body
 
     if(!subject || !section || !title || !description || !duedate || !maxscore){
         return res.status(400).json({ message: "failed", data: "Incomplete input data."})
@@ -26,8 +27,6 @@ exports.createassignment = async (req, res) => {
         console.log(`There's a problem encountered while checking teacher, subject, section in create assignement. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
-
-    console.log(checkuser)
 
     if(!checkuser){
         return res.status(400).json({ message: "failed", data: "Unauthorized! User is not authorized to create assignment for this section."})
@@ -51,7 +50,33 @@ exports.createassignment = async (req, res) => {
         maxscore,
         schoolyear: schoolyear._id,
     })
-    .then(data => {
+    .then(async data => {
+
+        if(ison === true){
+            if(!qtitle || !qdescription || !qpoints ||  !qduedate){
+                await Assignment.findOne({ _id: data._id })
+                .catch(err => {
+                    console.log(`There's a problem encountered while deleting assignment in failed create assignment. Error: ${err}`)
+                    return res.status(400).json({ message: "bad-request1", data: "There's a problem with the server! Please contact support for more details."})
+                })
+                return res.status(400).json({ message: "failed", data: "Incomplete quest data."})
+            }
+
+            await Quest.create({
+                subject,
+                section,
+                teacher,
+                title: qtitle,
+                description: qdescription,
+                points: qpoints,
+                qduedate: qduedate,
+                schoolyear: schoolyear._id
+            })
+            .catch(err => {
+                console.log(`There's a problem encountered while creating quest in create assignment. Error: ${err}`)
+                return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+            })   
+        }
         return res.status(200).json({ message: "success" })
     })
     .catch(err => {
@@ -68,10 +93,31 @@ exports.getassignments = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
     }
 
-    const data = await Assignment.find({
-        subject: new mongoose.Types.ObjectId(subject),
-        section: new mongoose.Types.ObjectId(section)
-    })
+    const data = await Assignment.aggregate([
+        {
+            $match: {
+                subject: new mongoose.Types.ObjectId(subject),
+                section: new mongoose.Types.ObjectId(section),
+            },
+        },
+        {
+            $lookup: {
+                from: "quests",
+                localField: "_id",
+                foreignField: "assignment", 
+                as: "questdetails",
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1, 
+                description: 1,
+                duedate: 1,
+                questdetails: 1, 
+            },
+        },
+    ])
     .then(data => data)
     .catch(err => {
         console.log(`There's a problem encountered while fetching assignments. Error: ${err}`)

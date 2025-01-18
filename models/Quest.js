@@ -7,6 +7,18 @@ const QuestSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Schoolyear"
         },
+        section: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Section"
+        },
+        subject: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Subjects"
+        },
+        teacher: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Staffuser"
+        },
         assignment: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Assignments"
@@ -31,7 +43,7 @@ const QuestSchema = new mongoose.Schema(
             enum: ['Active', 'Completed', 'Expired'],
             default: 'Active',
         },
-        expirationDate: {
+        duedate: {
             type: Date, 
         },
     },

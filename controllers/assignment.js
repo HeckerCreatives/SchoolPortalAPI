@@ -63,6 +63,7 @@ exports.createassignment = async (req, res) => {
             }
 
             await Quest.create({
+                assignment: data._id,
                 subject,
                 section,
                 teacher,

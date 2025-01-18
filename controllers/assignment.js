@@ -53,7 +53,7 @@ exports.createassignment = async (req, res) => {
     .then(async data => {
 
         if(ison === "true"){
-            if(!qtitle || !qdescription || !qpoints ||  !qduedate){
+            if(!qtitle || !qdescription || !qpoints){
                 await Assignment.findOne({ _id: data._id })
                 .catch(err => {
                     console.log(`There's a problem encountered while deleting assignment in failed create assignment. Error: ${err}`)

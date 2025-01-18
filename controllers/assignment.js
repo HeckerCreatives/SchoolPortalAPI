@@ -9,7 +9,8 @@ const Assignment = require("../models/Assignment")
 exports.createassignment = async (req, res) => {
     const { id: teacher } = req.user
 
-    const { subject, section, title, description, duedate, maxscore} = req.user
+    console.log(teacher)
+    const { subject, section, title, description, duedate, maxscore} = req.body
 
     if(!subject || !section || !title || !description || !duedate || !maxscore){
         return res.status(400).json({ message: "failed", data: "Incomplete input data."})
@@ -26,6 +27,8 @@ exports.createassignment = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
 
+    console.log(checkuser)
+
     if(!checkuser){
         return res.status(400).json({ message: "failed", data: "Unauthorized! User is not authorized to create assignment for this section."})
     }
@@ -36,6 +39,7 @@ exports.createassignment = async (req, res) => {
         console.log(`There's a problem encountered while fetching current school year in create assignement. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
+    const date = new Date(duedate)
 
     await Assignment.create({
         subject,
@@ -43,7 +47,7 @@ exports.createassignment = async (req, res) => {
         teacher,
         title,
         description,
-        duedate,
+        duedate: date,
         maxscore,
         schoolyear: schoolyear._id,
     })

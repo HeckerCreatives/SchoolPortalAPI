@@ -91,7 +91,6 @@ exports.createSchedule = async (req, res) => {
         (subj) => subj.subject.toString() === subject.toString()  // Compare ObjectId as strings
     );
     
-    console.log(subjectExists)
     const subjects = 
         {
             subject: new mongoose.Types.ObjectId(subject),

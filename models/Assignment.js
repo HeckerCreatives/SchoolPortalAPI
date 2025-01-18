@@ -28,7 +28,7 @@ const AssignmentSchema = new mongoose.Schema(
             index: true,
         },
         duedate: {
-            type: String,
+            type: Date,
             index: true,
         },
         maxscore: {

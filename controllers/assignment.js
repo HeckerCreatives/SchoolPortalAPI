@@ -52,7 +52,7 @@ exports.createassignment = async (req, res) => {
     })
     .then(async data => {
 
-        if(ison === true){
+        if(ison === "true"){
             if(!qtitle || !qdescription || !qpoints ||  !qduedate){
                 await Assignment.findOne({ _id: data._id })
                 .catch(err => {

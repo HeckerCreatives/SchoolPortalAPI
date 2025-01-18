@@ -11,7 +11,7 @@ exports.createassignment = async (req, res) => {
     const { id: teacher } = req.user
 
     console.log(teacher)
-    const { subject, section, title, description, duedate, maxscore, ison, qtitle, qdescription, qpoints, qduedate} = req.body
+    const { subject, section, title, description, duedate, maxscore, ison, qtitle, qdescription, qpoints } = req.body
 
     if(!subject || !section || !title || !description || !duedate || !maxscore){
         return res.status(400).json({ message: "failed", data: "Incomplete input data."})
@@ -69,7 +69,7 @@ exports.createassignment = async (req, res) => {
                 title: qtitle,
                 description: qdescription,
                 points: qpoints,
-                qduedate: qduedate,
+                duedate: duedate,
                 schoolyear: schoolyear._id
             })
             .catch(err => {

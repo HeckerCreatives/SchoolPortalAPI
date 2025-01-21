@@ -40,6 +40,7 @@ exports.getassignments = async (req, res) => {
                 maxscore: 1,
                 description: 1,
                 duedate: 1,
+                submissions: 1,
                 questdetails: 1, 
             },
         },

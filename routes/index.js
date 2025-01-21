@@ -17,6 +17,7 @@ const routers = app => {
     app.use("/supportconversation", require("./supportconversation"))
     app.use("/supportmessage", require("./supportmessage"))
     app.use("/news", require("./news"))
+    app.use("/notification", require("./notification"))
     app.use("/program", require("./program"))
     app.use("/quest", require("./quest"))
     app.use("/staffuser", require("./staffuser"))
@@ -30,6 +31,7 @@ const routers = app => {
     app.use("/evaluationresponse", require("./evaluationresponse"))
     
     app.use("/uploads", require("./upload"))
+    app.use("/wallet", require("./wallet"))
 }
 
 module.exports = routers

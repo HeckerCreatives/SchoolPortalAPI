@@ -12,9 +12,9 @@ router
 // #region TEACHER
 
 .post("/createassignment", protectteacheradviser, createassignment)
+.post("/addscore", protectteacheradviser, addscore)
 .get("/getassignmentsteacher", protectteacheradviser, getassignments)
 .get("/viewsubmissions", protectteacheradviser, viewsubmissions)
-.get("/addscore", protectteacheradviser, addscore)
 
 // #endregion
 

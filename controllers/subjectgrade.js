@@ -9,8 +9,6 @@ const Section = require("../models/Section")
 const Subject = require("../models/Subject")
 
 
-
-
 exports.createsubjectgrade = async (req, res) => {
     const { id } = req.user; // Teacher or admin ID
     const { newgrades } = req.body; // Input data

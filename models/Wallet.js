@@ -6,9 +6,6 @@ const walletSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Studentusers"
         },
-        type: {
-            type: String
-        },
         amount: {
             type: Number
         }

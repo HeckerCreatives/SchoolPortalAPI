@@ -14,6 +14,10 @@ exports.getassignments = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
     }
 
+    if (!mongoose.Types.ObjectId.isValid(subject)|| !mongoose.Types.ObjectId.isValid(section)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Assignment and Section ID format." });
+    }
+
     const data = await Assignment.aggregate([
         {
             $match: {
@@ -33,6 +37,7 @@ exports.getassignments = async (req, res) => {
             $project: {
                 _id: 1,
                 title: 1, 
+                maxscore: 1,
                 description: 1,
                 duedate: 1,
                 questdetails: 1, 
@@ -61,6 +66,9 @@ exports.createassignment = async (req, res) => {
 
     if(!subject || !section || !title || !description || !duedate || !maxscore){
         return res.status(400).json({ message: "failed", data: "Incomplete input data."})
+    }
+    if (!mongoose.Types.ObjectId.isValid(subject) || !mongoose.Types.ObjectId.isValid(section) || !mongoose.Types.ObjectId.isValid(teacher)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Subject, Section or Teacher ID format." });
     }
 
     const checkuser = await Schedule.findOne({
@@ -138,6 +146,10 @@ exports.viewsubmissions = async (req, res) => {
     
     if(!assignmentid){
         return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignmentid)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Assignment ID format." });
     }
 
     const data = await Assignment.aggregate([
@@ -225,6 +237,10 @@ exports.addscore = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
     }
 
+    if (!mongoose.Types.ObjectId.isValid(assignmentid)|| !mongoose.Types.ObjectId.isValid(studentid)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Assignment and Student ID format." });
+    }
+
     const assignment = await Assignment.findOne({
         _id: new mongoose.Types.ObjectId(assignmentid),
         teacher: new mongoose.Types.ObjectId(teacher),
@@ -236,6 +252,10 @@ exports.addscore = async (req, res) => {
             message: "failed", 
             data: "Assignment not found."
         });
+    }
+
+    if(score < 0 || score > assignment.maxscore){
+        return res.status(400).json({ message: "failed", data: "Score must be between 0 and max score."})
     }
 
     await Assignment.updateOne(
@@ -261,6 +281,9 @@ exports.submitassignment = async (req, res) => {
     const { answer, assignmentid } = req.body
     const file = req.file?.path || null;
 
+    let status = "submitted"
+    const date = new Date()
+
 
     if(!file && !answer){
         return res.status(400).json({ message: "failed", data: "Student must at least submit a file or an answer."})
@@ -277,10 +300,15 @@ exports.submitassignment = async (req, res) => {
         });
     }
 
+    if(assignment.duedate < date){
+        status = "late"
+    }
+
     const submission = {
         student: new mongoose.Types.ObjectId(student),
         file,
         answer,
+        status
     };
 
     await Assignment.updateOne(
@@ -307,15 +335,28 @@ exports.deletesubmission = async (req, res) => {
 
     const assignment = await Assignment.findOne({
         _id: new mongoose.Types.ObjectId(assignmentid),
-        "submissions.student": new mongoose.Types.ObjectId(student)
+        "submissions.student": new mongoose.Types.ObjectId(student),
     });
 
-    if (!assignment) {
-        return res.status(400).json({ 
-            message: "failed", 
-            data: "You have not submitted this assignment."
+    const submission = assignment.submissions.find(
+        (sub) => sub.student.toString() === student
+    );
+
+    if (!submission) {
+        return res.status(400).json({
+            message: "failed",
+            data: "Submission not found.",
         });
     }
+
+    if (submission.score !== undefined && submission.score !== null) {
+        return res.status(400).json({
+            message: "failed",
+            data: "You cannot delete a submission that has already been graded.",
+        });
+    }
+
+    
 
     await Assignment.updateOne(
         { _id: new mongoose.Types.ObjectId(assignmentid) },

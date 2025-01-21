@@ -6,6 +6,7 @@ const Gradelevel = require("../models/Gradelevel");
 const Program = require("../models/Program");
 const EnrollmentFee = require("../models/Enrollmentfee");
 const GradingPeriod = require("../models/Gradingperiod");
+const Wallets = require("../models/Wallet");
 
 exports.initialize = async () => {
 
@@ -140,5 +141,18 @@ exports.initialize = async () => {
         console.log("Grading Period initialized")
     }
 
+    // const students = await Studentusers.find()
+
+    // students.forEach(async student => {
+    //     const wallet = await Wallets.findOne({ owner: student._id })
+    //     if(!wallet){
+    //         await Wallets.create({
+    //             owner: student._id,
+    //             amount: 5000
+    //         })
+
+    //         console.log("Wallet data initialized for student: ", student._id);
+    //     }
+    // })
     console.log("SERVER DATA INITIALIZED");
 };

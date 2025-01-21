@@ -4,6 +4,7 @@ const Studentusers = require("../models/Studentusers")
 const Requirements = require("../models/Requirements")
 const Ticketusers = require("../models/Ticketusers")
 const Studentuserdetails = require("../models/Studentuserdetails")
+const Wallets = require("../models/Wallet")
 
 
 exports.entranceexamstatus = async (req, res) => {
@@ -117,6 +118,11 @@ exports.setentranceexamstatus = async (req, res) => {
             .catch(err => {
                 console.log(`There's a problem encountered while creating student user details. Error: ${err}`)
                 return res.status(400).json({ message: "bad-request", data: "There's a problem with the server. Please try again later."})
+            })
+
+            await Wallets.create({
+                owner: data._id,
+                amount: 5000,
             })
             return res.status(200).json({ message: "success" })
         })

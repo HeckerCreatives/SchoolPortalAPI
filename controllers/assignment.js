@@ -4,13 +4,59 @@ const Schoolyear = require("../models/Schoolyear")
 const Assignment = require("../models/Assignment")
 const Quest = require("../models/Quest")
 
+// #region TEACHER/STUDENT
 
+exports.getassignments = async (req, res) => {
+    const { id } = req.user
+    const { subject, section } = req.query
 
+    if(!subject || !section){
+        return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
+    }
+
+    const data = await Assignment.aggregate([
+        {
+            $match: {
+                subject: new mongoose.Types.ObjectId(subject),
+                section: new mongoose.Types.ObjectId(section),
+            },
+        },
+        {
+            $lookup: {
+                from: "quests",
+                localField: "_id",
+                foreignField: "assignment", 
+                as: "questdetails",
+            },
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1, 
+                description: 1,
+                duedate: 1,
+                questdetails: 1, 
+            },
+        },
+    ])
+    .then(data => data)
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching assignments. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    
+    return res.status(200).json({ message: "success", data: data })
+
+}
+
+// #endregion
+
+// #region TEACHER/ADVISER
 
 exports.createassignment = async (req, res) => {
     const { id: teacher } = req.user
 
-    console.log(teacher)
     const { subject, section, title, description, duedate, maxscore, ison, qtitle, qdescription, qpoints } = req.body
 
     if(!subject || !section || !title || !description || !duedate || !maxscore){
@@ -86,49 +132,92 @@ exports.createassignment = async (req, res) => {
     })
 }
 
-exports.getassignments = async (req, res) => {
-    const { id } = req.user
-    const { subject, section } = req.query
-
-    if(!subject || !section){
+exports.viewsubmissions = async (req, res) => {
+    const { id: teacher } = req.user
+    const { assignmentid } = req.query
+    
+    if(!assignmentid){
         return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
     }
 
     const data = await Assignment.aggregate([
         {
             $match: {
-                subject: new mongoose.Types.ObjectId(subject),
-                section: new mongoose.Types.ObjectId(section),
+                _id: new mongoose.Types.ObjectId(assignmentid),
+                teacher: new mongoose.Types.ObjectId(teacher),
             },
         },
         {
             $lookup: {
-                from: "quests",
-                localField: "_id",
-                foreignField: "assignment", 
-                as: "questdetails",
+                from: "studentuserdetails",
+                localField: "submissions.student",
+                foreignField: "owner",
+                as: "studentdetails",
+            },
+        },
+        {
+            $unwind: "$submissions", // Break down each submission into separate documents
+        },
+        {
+            $lookup: {
+                from: "studentuserdetails",
+                localField: "submissions.student",
+                foreignField: "owner",
+                as: "submissions.studentDetails", // Add student details directly into the submissions array
+            },
+        },
+        {
+            $unwind: "$submissions.studentDetails", // Ensure each student has their details expanded
+        },
+        {
+            $group: {
+                _id: "$_id", // Group back to the assignment level
+                assignmentDetails: {
+                    $first: {
+                        teacher: "$teacher",
+                        subject: "$subject",
+                        section: "$section",
+                        schoolyear: "$schoolyear",
+                        title: "$title",
+                        description: "$description",
+                        duedate: "$duedate",
+                        maxscore: "$maxscore",
+                    },
+                },
+                submissions: {
+                    $push: {
+                        student: "$submissions.student",
+                        file: "$submissions.file",
+                        answer: "$submissions.answer",
+                        score: "$submissions.score",
+                        studentDetails: {
+                            firstName: "$submissions.studentDetails.firstname",
+                            lastName: "$submissions.studentDetails.lastname",
+                        },
+                    },
+                },
             },
         },
         {
             $project: {
                 _id: 1,
-                title: 1, 
-                description: 1,
-                duedate: 1,
-                questdetails: 1, 
+                assignmentDetails: 1,
+                submissions: 1,
             },
         },
-    ])
+    ])    
     .then(data => data)
     .catch(err => {
-        console.log(`There's a problem encountered while fetching assignments. Error: ${err}`)
+        console.log(`There's a problem encountered while fetching submissions. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
 
-    
     return res.status(200).json({ message: "success", data: data })
-
 }
+
+// #endregion
+
+// #region STUDENT
 
 exports.submitassignment = async (req, res) => {
     const { id: student } = req.user
@@ -147,7 +236,7 @@ exports.submitassignment = async (req, res) => {
     if (assignment) {
         return res.status(400).json({ 
             message: "failed", 
-            data: "You have already submitted this assignment."
+            data: "You have already submitted in this assignment."
         });
     }
 
@@ -170,3 +259,38 @@ exports.submitassignment = async (req, res) => {
     })
 
 }
+
+exports.deletesubmission = async (req, res) => {
+    const { id: student } = req.user
+    const { assignmentid } = req.query
+
+    if(!assignmentid){
+        return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
+    }
+
+    const assignment = await Assignment.findOne({
+        _id: new mongoose.Types.ObjectId(assignmentid),
+        "submissions.student": new mongoose.Types.ObjectId(student)
+    });
+
+    if (!assignment) {
+        return res.status(400).json({ 
+            message: "failed", 
+            data: "You have not submitted this assignment."
+        });
+    }
+
+    await Assignment.updateOne(
+        { _id: new mongoose.Types.ObjectId(assignmentid) },
+        { $pull: { submissions: { student: new mongoose.Types.ObjectId(student) } } }
+    )
+    .then(data => {
+        return res.status(200).json({ message: "success" })
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting submission. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+}
+
+// #endregion

@@ -1,4 +1,4 @@
-const { createassignment, submitassignment, getassignments } = require("../controllers/assignment")
+const { createassignment, submitassignment, getassignments, viewsubmissions, deletesubmission } = require("../controllers/assignment")
 const { protectteacheradviser, protectstudent } = require("../middleware/middleware")
 const upload = require("../middleware/upload")
 
@@ -8,8 +8,17 @@ const uploadimg = upload.single("file")
 const router = require("express").Router()
 
 router
+
+// #region TEACHER
+
 .post("/createassignment", protectteacheradviser, createassignment)
 .get("/getassignmentsteacher", protectteacheradviser, getassignments)
+.get("/viewsubmissions", protectteacheradviser, viewsubmissions)
+
+// #endregion
+
+// #region STUDENT
+
 .post("/submitassignment", protectstudent, function (req, res, next){
     uploadimg(req, res, function(err){
         if(err){
@@ -19,6 +28,8 @@ router
     })
 }, submitassignment)
 .get("/getassignmentsstudent", protectstudent, getassignments)
+.get("/deletesubmission", protectstudent, deletesubmission)
 
+// #endregion
 
 module.exports = router

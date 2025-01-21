@@ -39,7 +39,7 @@ const AssignmentSchema = new mongoose.Schema(
             {
                 student: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: "Students"
+                    ref: "Studentusers"
                 },
                 file: {
                     type: String,

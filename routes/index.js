@@ -18,6 +18,7 @@ const routers = app => {
     app.use("/supportmessage", require("./supportmessage"))
     app.use("/news", require("./news"))
     app.use("/program", require("./program"))
+    app.use("/quest", require("./quest"))
     app.use("/staffuser", require("./staffuser"))
     app.use("/subject", require("./subject"))
     app.use("/subjectgrade", require("./subjectgrade"))

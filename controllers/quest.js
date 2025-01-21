@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose")
 const Quest = require("../models/Quest")
 const Schoolyear = require("../models/Schoolyear")
+const Wallets = require("../models/Wallet")
 
 
 exports.createquest = async (req, res) => {
@@ -133,3 +134,33 @@ exports.getquestbysubjectsection = async (req, res) => {
 
 }
 
+
+exports.sendpoints = async (req, res) => {
+    
+    const { id } = req.user
+    const { questid, students, points } = req.body
+
+    if(!questid || !points){
+        return res.status(400).json({ message: "failed", data: "Incomplete input data."})
+    }
+
+    if(!students || students.length <= 0){
+        return res.status(400).json({ message: "failed", data: "No student data found."})
+    }
+
+    await Quest.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(questid) }, { $status: "completed"})
+    .catch(err => {
+        console.log(`There's a problem encountered while completing quest. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    students.map(async (student) => {
+        await Wallets.findOneAndUpdate({ owner: new mongoose.Types.ObjectId(student) }, { $inc: { amount: points }})
+        .catch(err => {
+            console.log(`There's a problem encountered while updating wallet for student user: ${student}. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+        })
+    })
+
+    return res.status(200).json({ message: "success" })
+}

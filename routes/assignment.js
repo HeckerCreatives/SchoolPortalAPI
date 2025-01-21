@@ -1,4 +1,5 @@
 const { createassignment, submitassignment, getassignments, viewsubmissions, deletesubmission, addscore } = require("../controllers/assignment")
+const { sendpoints } = require("../controllers/quest")
 const { protectteacheradviser, protectstudent } = require("../middleware/middleware")
 const upload = require("../middleware/upload")
 

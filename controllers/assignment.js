@@ -215,6 +215,43 @@ exports.viewsubmissions = async (req, res) => {
     return res.status(200).json({ message: "success", data: data })
 }
 
+exports.addscore = async (req, res) => {
+
+    const { id: teacher } = req.user
+    const { assignmentid, studentid, score } = req.body
+
+
+    if(!assignmentid || !studentid || !score){ 
+        return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
+    }
+
+    const assignment = await Assignment.findOne({
+        _id: new mongoose.Types.ObjectId(assignmentid),
+        teacher: new mongoose.Types.ObjectId(teacher),
+        "submissions.student": new mongoose.Types.ObjectId(studentid)
+    });
+
+    if (!assignment) {
+        return res.status(400).json({ 
+            message: "failed", 
+            data: "Assignment not found."
+        });
+    }
+
+    await Assignment.updateOne(
+        { _id: new mongoose.Types.ObjectId(assignmentid) },
+        { $set: { "submissions.$[elem].score": score } },
+        { arrayFilters: [{ "elem.student": new mongoose.Types.ObjectId(studentid) }] 
+    })
+    .then(data => {
+        return res.status(200).json({ message: "success" })
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while adding score. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+}
+
 // #endregion
 
 // #region STUDENT

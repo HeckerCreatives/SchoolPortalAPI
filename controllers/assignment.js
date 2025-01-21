@@ -182,6 +182,17 @@ exports.viewsubmissions = async (req, res) => {
             $unwind: "$submissions.studentDetails", // Ensure each student has their details expanded
         },
         {
+            $lookup: {
+                from: "quests",
+                localField: "_id",
+                foreignField: "assignment",
+                as: "questdetails"
+            }
+        },
+        {
+            $unwind: "$questdetails"
+        },
+        {
             $group: {
                 _id: "$_id", // Group back to the assignment level
                 assignmentDetails: {
@@ -208,6 +219,15 @@ exports.viewsubmissions = async (req, res) => {
                         },
                     },
                 },
+                quest: {
+                    $push: {
+                        title: "$questdetails.title",
+                        descrtiption: "$questdetails.description",
+                        points: "$questdetails.points",
+                        duedate: "$questdetails.duedate",
+                        status: "$questdetails.status"
+                    }
+                }
             },
         },
         {
@@ -215,6 +235,7 @@ exports.viewsubmissions = async (req, res) => {
                 _id: 1,
                 assignmentDetails: 1,
                 submissions: 1,
+                quest: 1,
             },
         },
     ])    

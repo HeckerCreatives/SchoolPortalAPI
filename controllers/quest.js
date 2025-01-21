@@ -157,7 +157,7 @@ exports.sendpoints = async (req, res) => {
     if(quest.status === "Completed"){
         return res.status(400).json({ message: "failed", data: "Quest is already completed."})
     }
-    await Quest.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(questid) }, { $status: "Completed"})
+    await Quest.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(questid) }, { $set: { status: "Completed"} })
     .catch(err => {
         console.log(`There's a problem encountered while completing quest. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})

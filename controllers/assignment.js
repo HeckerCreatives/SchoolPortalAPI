@@ -210,6 +210,7 @@ exports.viewsubmissions = async (req, res) => {
                 },
                 submissions: {
                     $push: {
+                        _id: "$submissions._id",
                         student: "$submissions.student",
                         file: "$submissions.file",
                         answer: "$submissions.answer",
@@ -222,6 +223,7 @@ exports.viewsubmissions = async (req, res) => {
                 },
                 quest: {
                     $push: {
+                        _id: "$questdetails._id",
                         title: "$questdetails.title",
                         descrtiption: "$questdetails.description",
                         points: "$questdetails.points",

@@ -148,7 +148,16 @@ exports.sendpoints = async (req, res) => {
         return res.status(400).json({ message: "failed", data: "No student data found."})
     }
 
-    await Quest.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(questid) }, { $status: "completed"})
+    const quest = await Quest.findOne({ _id: new mongoose.Types.ObjectId(questid) })
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching quest data in sendpoints. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    if(quest.status === "Completed"){
+        return res.status(400).json({ message: "failed", data: "Quest is already completed."})
+    }
+    await Quest.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(questid) }, { $status: "Completed"})
     .catch(err => {
         console.log(`There's a problem encountered while completing quest. Error: ${err}`)
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})

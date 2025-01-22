@@ -26,6 +26,10 @@ const NotificationSchema = new mongoose.Schema(
                     enum: ["Staffusers", "Studentusers"],
                     required: true,
                 },
+                isRead: {
+                    type: Boolean,
+                    default: false,
+                }
             },
         ],
         title: {

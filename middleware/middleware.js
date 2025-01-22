@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require("path");
 const publicKey = fs.readFileSync(path.resolve(__dirname, "../keys/public-key.pem"), 'utf-8');
 const jsonwebtokenPromisified = require('jsonwebtoken-promisified');
+const Staffuserdetails = require("../models/Staffuserdetails");
 
 const verifyJWT = async (token) => {
     try {
@@ -209,7 +210,20 @@ exports.protectteacheradviser = async (req, res, next) => {
             return res.status(401).json({ message: 'duallogin', data: `Your account had been opened on another device! You will now be logged out.` });
         }
 
-        req.user = decodedToken;
+        const teacherdetails = await Staffuserdetails.findOne({owner: user._id})
+
+        if (!teacherdetails) {
+            return res.status(404).json({ 
+                message: 'Not Found', 
+                data: "Teacher details not found. Please contact support." 
+            });
+        }
+        
+        req.user = {
+            ...decodedToken,
+            firstname: teacherdetails.firstname, 
+            lastname: teacherdetails.lastname   
+        }
         next();
     }
     catch(ex){

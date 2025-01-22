@@ -1,12 +1,21 @@
-const { default: mongoose } = require("mongoose")
-const Emails = require("../models/Email")
-const Users = require("../models/Users")
-const Userdetails = require("../models/Userdetails")
+
 const Notification = require("../models/Notification")
 
-exports.sendmail = async(sender, receiver, title, content, sendtoall) => {
+exports.sendmailtostudents = async(senderId, senderType, receivers, title, content) => {
 
-    await Notification.create({sender: sender, receiver: receiver, title: title, content: content, sendtoall: sendtoall})
+    const notification = new Notification({
+        sender: {
+            userId: senderId,
+            userType: senderType,
+        },
+        receiver: receivers.map((receiverId) => ({
+            userId: receiverId,
+            userType: "Studentusers",
+        })),
+        title,
+        content,
+    });
 
+    await notification.save();
     return "success"
 }

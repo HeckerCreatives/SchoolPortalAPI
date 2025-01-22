@@ -4,9 +4,9 @@ const Notification = require("../models/Notification")
 exports.getnotifications = async (req, res) => {
     const { id } = req.user
 
-    await Notification.find({ receiver: new mongoose.Types.ObjectId(id) })
-    .populate("sender")
-    .populate("receiver")
+    await Notification.find({ "receiver.userId": new mongoose.Types.ObjectId(id) })
+    .populate("sender.userId")
+    .populate("receiver.userId")
     .then(data => {
         if(!data){
             return res.status(400).json({ message: "failed", data: "No notifications found."})

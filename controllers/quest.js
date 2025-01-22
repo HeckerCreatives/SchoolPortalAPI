@@ -137,7 +137,7 @@ exports.getquestbysubjectsection = async (req, res) => {
 
 exports.sendpoints = async (req, res) => {
     
-    const { id } = req.user
+    const { id, firstname, lastname } = req.user
     const { questid, students, points } = req.body
 
     if(!questid || !points){
@@ -170,6 +170,17 @@ exports.sendpoints = async (req, res) => {
             return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
         })
     })
+
+    const emailContent = `Congratulations! You have earned ${points} points for completing the quest "${quest.title}". This quest was facilitated by teacher ${firstname} ${lastname}. Please check your wallet for updates.`;
+    
+    const senderId = new mongoose.Types.ObjectId(id); 
+    const senderType = "Staffusers"; 
+    const receiver = students
+            
+    await sendmailtostudents(senderId, senderType, receiver, "Assignment Notification", emailContent)
+        .catch((err) => {
+            console.error(`Failed to send notification. Error: ${err}`);
+        });
 
     return res.status(200).json({ message: "success" })
 }

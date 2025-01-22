@@ -3,6 +3,8 @@ const Schedule = require("../models/Schedule")
 const Schoolyear = require("../models/Schoolyear")
 const Assignment = require("../models/Assignment")
 const Quest = require("../models/Quest")
+const { sendmailtostudents } = require("../utils/notification")
+const Section = require("../models/Section")
 
 // #region TEACHER/STUDENT
 
@@ -61,7 +63,7 @@ exports.getassignments = async (req, res) => {
 // #region TEACHER/ADVISER
 
 exports.createassignment = async (req, res) => {
-    const { id: teacher } = req.user
+    const { id: teacher, firstname, lastname } = req.user
 
     const { subject, section, title, description, duedate, maxscore, ison, qtitle, qdescription, qpoints } = req.body
 
@@ -83,6 +85,9 @@ exports.createassignment = async (req, res) => {
         return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
     })
 
+    const { students } = await Section.findOne({ _id: new mongoose.Types.ObjectId(section) })
+    
+    
     if(!checkuser){
         return res.status(400).json({ message: "failed", data: "Unauthorized! User is not authorized to create assignment for this section."})
     }
@@ -106,7 +111,6 @@ exports.createassignment = async (req, res) => {
         schoolyear: schoolyear._id,
     })
     .then(async data => {
-
         if(ison === "true"){
             if(!qtitle || !qdescription || !qpoints){
                 await Assignment.findOne({ _id: data._id })
@@ -133,6 +137,18 @@ exports.createassignment = async (req, res) => {
                 return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
             })   
         }
+
+        const emailContent = `A new assignment has been created by teacher ${firstname} ${lastname} for ${title}. Please check the classroom for more details.`;
+
+        const senderId = new mongoose.Types.ObjectId(teacher); 
+        const senderType = "Staffusers"; 
+        const receivers = students.map((student) => student._id); 
+        
+        await sendmailtostudents(senderId, senderType, receivers, "Assignment Notification", emailContent)
+            .catch((err) => {
+                console.error(`Failed to send notification. Error: ${err}`);
+            });
+
         return res.status(200).json({ message: "success" })
     })
     .catch(err => {
@@ -253,7 +269,7 @@ exports.viewsubmissions = async (req, res) => {
 
 exports.addscore = async (req, res) => {
 
-    const { id: teacher } = req.user
+    const { id: teacher, firstname, lastname } = req.user
     const { assignmentid, studentid, score } = req.body
 
 
@@ -287,7 +303,19 @@ exports.addscore = async (req, res) => {
         { $set: { "submissions.$[elem].score": score } },
         { arrayFilters: [{ "elem.student": new mongoose.Types.ObjectId(studentid) }] 
     })
-    .then(data => {
+    .then(async data => {
+        const emailContent = `Your assignment titled "${assignment.title}" has been graded by teacher ${firstname} ${lastname}. Please check the classroom for more details.`;
+
+        const senderId = new mongoose.Types.ObjectId(teacher); 
+        const senderType = "Staffusers"; 
+        const receiver = [studentid] 
+        
+        await sendmailtostudents(senderId, senderType, receiver, "Assignment Notification", emailContent)
+            .catch((err) => {
+                console.error(`Failed to send notification. Error: ${err}`);
+            });
+
+
         return res.status(200).json({ message: "success" })
     })
     .catch(err => {

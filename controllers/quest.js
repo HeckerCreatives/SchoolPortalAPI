@@ -2,6 +2,8 @@ const { default: mongoose } = require("mongoose")
 const Quest = require("../models/Quest")
 const Schoolyear = require("../models/Schoolyear")
 const Wallets = require("../models/Wallet")
+const Assignment = require("../models/Assignment")
+const Section = require("../models/Section")
 
 
 exports.createquest = async (req, res) => {
@@ -44,6 +46,7 @@ exports.createquest = async (req, res) => {
 }
 
 exports.updatequest = async (req, res) => {
+    const { id: teacher, firstname, lastname } = req.user
     const { questid, title, description, points, duedate } = req.body
 
     if(!questid || !title || description || points || duedate){
@@ -62,10 +65,26 @@ exports.updatequest = async (req, res) => {
         },
         { new: true } 
     )
-        .then(data => {
+        .then(async data => {
             if (!data) {
                 return res.status(400).json({ message: "bad-request", data: "Quest not found or update failed." });
             }
+
+            const assignment = await Assignment.findOne({ _id: new mongoose.Types.ObjectId(data.assignment)})
+
+            const { students } = await Section.findOne({ _id: new mongoose.Types.ObjectId(assignment.section)})
+
+            const emailContent = `The quest "${data.title}" has been updated. Please check the details below: \n\nTitle: ${data.title}\nDescription: ${data.description}\nPoints: ${data.points}\nDue Date: ${data.duedate}\n\nThis quest was facilitated by teacher ${firstname} ${lastname}.`;
+       
+            const senderId = new mongoose.Types.ObjectId(teacher); 
+            const senderType = "Staffusers"; 
+            const receivers = students.map((student) => student._id); 
+            
+            await sendmailtostudents(senderId, senderType, receivers, "Assignment Notification", emailContent)
+                .catch((err) => {
+                    console.error(`Failed to send notification. Error: ${err}`);
+                });           
+            
             return res.status(200).json({ message: "success" });
         })
         .catch(err => {
@@ -74,6 +93,7 @@ exports.updatequest = async (req, res) => {
         });
 }
 exports.deletequest = async (req, res) => {
+    const { id: teacher, firstname, lastname } = req.user
     const { questid } = req.query;
 
     if (!questid) {
@@ -81,10 +101,27 @@ exports.deletequest = async (req, res) => {
     }
 
     await Quest.findOneAndDelete({ _id: new mongoose.Types.ObjectId(questid) })
-        .then(data => {
+        .then(async data => {
             if (!data) {
                 return res.status(404).json({ message: "not-found", data: "Quest not found or already deleted." });
             }
+
+            const assignment = await Assignment.findOne({ _id: new mongoose.Types.ObjectId(data.assignment)})
+
+            const { students } = await Section.findOne({ _id: new mongoose.Types.ObjectId(assignment.section)})
+
+            const emailContent = `The quest "${data.title}" has been deleted. This quest was facilitated by teacher ${firstname} ${lastname}.`;
+       
+            const senderId = new mongoose.Types.ObjectId(teacher); 
+            const senderType = "Staffusers"; 
+            const receivers = students.map((student) => student._id); 
+            
+            await sendmailtostudents(senderId, senderType, receivers, "Assignment Notification", emailContent)
+                .catch((err) => {
+                    console.error(`Failed to send notification. Error: ${err}`);
+                });           
+            
+            
             return res.status(200).json({ message: "success", data: "Quest successfully deleted." });
         })
         .catch(err => {

@@ -1,4 +1,4 @@
-const { createassignment, submitassignment, getassignments, viewsubmissions, deletesubmission, addscore } = require("../controllers/assignment")
+const { createassignment, submitassignment, getassignments, viewsubmissions, deletesubmission, addscore, deleteassignment, editassigment } = require("../controllers/assignment")
 const { sendpoints } = require("../controllers/quest")
 const { protectteacheradviser, protectstudent } = require("../middleware/middleware")
 const upload = require("../middleware/upload")
@@ -13,9 +13,11 @@ router
 // #region TEACHER
 
 .post("/createassignment", protectteacheradviser, createassignment)
+.post("/editassigment", protectteacheradviser, editassigment)
 .post("/addscore", protectteacheradviser, addscore)
 .get("/getassignmentsteacher", protectteacheradviser, getassignments)
 .get("/viewsubmissions", protectteacheradviser, viewsubmissions)
+.get("/deleteassigment", protectteacheradviser, deleteassignment)
 
 // #endregion
 

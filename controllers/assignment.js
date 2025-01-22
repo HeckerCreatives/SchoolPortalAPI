@@ -157,6 +157,121 @@ exports.createassignment = async (req, res) => {
     })
 }
 
+exports.deleteassignment = async (req, res) => {
+    const { id: teacher, firstname, lastname } = req.user
+    const { assignmentid } = req.query
+
+    if(!assignmentid){
+        return res.status(400).json({ message: "failed", data: "Incomplete Input Fields."})
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignmentid)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Assignment ID format." });
+    }
+
+    const assignment = await Assignment.findOne({
+        _id: new mongoose.Types.ObjectId(assignmentid),
+        teacher: new mongoose.Types.ObjectId(teacher),
+    });
+
+    if (!assignment) {
+        return res.status(400).json({ 
+            message: "failed", 
+            data: "Assignment not found."
+        });
+    }
+
+    if (assignment.submissions.length > 0) {
+        return res.status(400).json({
+            message: "failed",
+            data: "You cannot delete an assignment that has submissions.",
+        });
+    }
+
+    const { students } = await Section.findOne({ _id: new mongoose.Types.ObjectId(assignment.section) })
+
+
+    await Assignment.deleteOne({ _id: new mongoose.Types.ObjectId(assignmentid) })
+    .then(async data => {
+
+        await Quest.deleteOne({ assignment: new mongoose.Types.ObjectId(assignmentid) })
+        .catch(err => {
+            console.log(`There's a problem encountered while deleting quest in delete assignment. Error: ${err}`)
+            return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+        })
+
+        const emailContent = `Your assignment titled "${assignment.title}" has been deleted by teacher ${firstname} ${lastname}.`;
+      
+        const senderId = new mongoose.Types.ObjectId(teacher); 
+        const senderType = "Staffusers"; 
+        const receivers = students.map((student) => student._id); 
+        
+        await sendmailtostudents(senderId, senderType, receivers, "Assignment Notification", emailContent)
+            .catch((err) => {
+                console.error(`Failed to send notification. Error: ${err}`);
+            });
+
+        return res.status(200).json({ message: "success" })
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while deleting assignment. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+}
+
+exports.editassigment = async (req, res) => {
+    const { id: teacher, firstname, lastname} = req.user
+    const { assignmentid, title, description, duedate, maxscore } = req.body
+
+    if(!title || !description || !duedate || !maxscore){
+        return res.status(400).json({ message: "failed", data: "Incomplete input data."})
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(assignmentid)) {
+        return res.status(400).json({ message: "failed", data: "Invalid Assigment ID format." });
+    }
+
+    const assignment = await Assignment.findOne({ _id: new mongoose.Types.ObjectId(assignmentid) })
+    .catch(err => {
+        console.log(`There's a problem encountered while fetching assignment in edit assignment. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+
+    if (!assignment){
+        return res.status(400).json({ message: "failed", data: "Assigment not found."})
+    }
+    if(assignment.submissions.length > 0){
+        return res.status(400).json({ message: "failed", data: "You cannot edit an assignment that has submissions."})
+    }
+
+    const date = new Date(duedate)
+
+    await Assignment.updateOne(
+        { _id: new mongoose.Types.ObjectId(assignmentid) },
+        { $set: { title, description, duedate: date, maxscore } }
+    )
+    .then(async data => {
+        const { students } = await Section.findOne({ _id: new mongoose.Types.ObjectId(assignment.section) })
+
+        const emailContent = `Your assignment titled "${assignment.title}" has been edited by teacher ${firstname} ${lastname}. Please check the classroom for more details.`;
+
+        const senderId = new mongoose.Types.ObjectId(teacher); 
+        const senderType = "Staffusers"; 
+        const receivers = students.map((student) => student._id); 
+        
+        await sendmailtostudents(senderId, senderType, receivers, "Assignment Notification", emailContent)
+            .catch((err) => {
+                console.error(`Failed to send notification. Error: ${err}`);
+            });
+
+        return res.status(200).json({ message: "success" })
+    })
+    .catch(err => {
+        console.log(`There's a problem encountered while editing assignment. Error: ${err}`)
+        return res.status(400).json({ message: "bad-request", data: "There's a problem with the server! Please contact support for more details."})
+    })
+}
+
 exports.viewsubmissions = async (req, res) => {
     const { id: teacher } = req.user
     const { assignmentid } = req.query

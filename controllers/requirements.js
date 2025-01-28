@@ -25,7 +25,7 @@ exports.submitrequirement = async (req, res) => {
 
     const birthcertificate = files.bc[0].path
     const form137 = files.form[0].path
-    const tor = Array.isArray(files?.tor) && files.tor.length > 0 ? files.tor[0].path : null;
+    const tor = files.form[0].path || null
 
 
 
